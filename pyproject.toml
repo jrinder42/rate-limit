@@ -1,0 +1,109 @@
+[project]
+name = "rate-limit"
+version = "0.1.0"
+description = "Rate limiting package"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+authors = [
+    {name = "Jordan Rinder", email = "jordan.rinder@gmail.com"}
+]
+maintainers = [
+  {name = "Jordan Rinder", email = "jordan.rinder@gmail.com"}
+]
+license = {file = "LICENSE"}
+keywords = ["Rate Limit"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rate_limit*"]
+
+[dependency-groups]
+dev = [
+    "notebook>=7.3.3",
+    "pre-commit",
+    "sqlfluff",
+]
+testing = [
+    "pytest>=8.2",
+    "pytest-cov"
+]
+ci = [
+    "black==23.11.0",
+    "isort==5.12.0",
+    "mypy",
+    "ruff",
+    "pylint",
+    "sqlfluff",
+    "pyupgrade",
+    "bandit[toml]",
+    "pydoclint[flake8]",
+    "flake8-pyproject",  # this is an issue with the above, actually a dep for pydoclint[flake8]
+    "flake8-pytest-style",
+]
+
+[tool.uv]
+default-groups = [
+    "dev",
+    "testing",
+    "ci",
+]
+
+[project.urls]
+Homepage = 'https://github.com/jrinder42/rate-limit'
+Source = 'https://github.com/jrinder42/rate-limit'
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
+# ruff
+[tool.ruff]
+# In addition to the standard set of exclusions, omit all tests, plus a specific file.
+extend-exclude = ["docs/*"]
+respect-gitignore = true
+
+[tool.ruff.lint]
+select = [
+    "D",  # pydocstyle
+    "UP",  # pyupgrade
+    "PT",  # pytest linting
+]
+ignore = [
+    # Relax: First line should end with a period, question mark, or exclamation point, ends-in-punctuation
+    "D415",
+    # Missing docstring in __init__; technically, this is also against PEP 257
+    "D107",
+]
+exclude = [
+    "docs/*",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Accepts: "google", "numpy", or "pep257".
+
+#[tool.pydoclint]  # cannot exclude rules with pydoclint
+[tool.flake8]
+style = "google"
+arg-type-hints-in-docstring = false
+show-filenames-in-every-violation-message = false
+extend-ignore = [
+    # Return type(s) in the docstring not consistent with the return annotation
+    "DOC203"
+]
+exclude = [
+    "docs/*",
+    "tests/conftest.py"
+]
