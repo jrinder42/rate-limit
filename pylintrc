@@ -1,0 +1,17 @@
+[MASTER]
+ignore-paths=docs
+
+[FORMAT]
+max-line-length = 120
+
+[MESSAGES CONTROL]
+disable=
+    broad-exception-raised,
+    fixme,
+    unspecified-encoding,
+    duplicate-code,
+    arguments-differ,  # for abstract base classes with methods that differ in arguments
+    pointless-string-statement,
+    invalid-name,
+    redefined-outer-name,
+    no-member,
