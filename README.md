@@ -2,11 +2,23 @@
 
 ## Algorithms
 
-| Algorithms   |  Sync  |  Async  |
-|:-------------|:------:|:-------:|
-| Leaky Bucket |  TBD   |   TBD   |
-| Token        |  TBD   |   TBD   |
-| LLM-Token    |  TBD   |   TBD   |
+| Algorithms                  | Sync |  Async  |
+|:----------------------------|:----:|:-------:|
+| Leaky Bucket                | Yes  |   TBD   |
+| Token Bucket                | TBD  |   TBD   |
+| Generic Cell Rate Algorithm | TBD  |   TBD   |
+| LLM-Token                   | TBD  |   TBD   |
+
+> [!NOTE]  
+> Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities
+> With asyncio, we use cooperative multitasking, not preemptive multi-threading
+
+## Notes:
+
+Async
+
+- Clean up the naming / add NamedTuples
+- Points out potential race condition at the end of the wakeup handler (timer and future callback can call `_wake_next` concurrently)
 
 ## Development
 
@@ -37,4 +49,54 @@ Create lock file + requirements.txt
 uv lock
 
 uv export -o requirements.txt --quiet
+```
+
+## Usage
+
+### Leaky Bucket
+
+Synchronous
+
+```python
+# no context manager, use directly
+
+import time
+
+from rate_limit.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
+
+# 4 requests per 2 seconds and a 4 second burst capacity
+config = LeakyBucketConfig(capacity=4, seconds=2)
+sync_bucket = SyncLeakyBucket(config)
+for i in range(7):
+    sync_bucket.acquire(1)
+    print(f"Current level: {sync_bucket._bucket_level}")
+    time.sleep(0.3)  # Simulate some work being done
+    
+print("Waiting for bucket to leak...")
+time.sleep(1)  # check how much leaks out of the bucket in 1 second
+sync_bucket._leak()  # update the bucket level after waiting
+print(f"Current level after leaking: {sync_bucket._bucket_level}")
+```
+
+```python
+# context manager
+
+import time
+
+from rate_limit.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
+
+# 4 requests per 2 seconds and a 4 second burst capacity
+config = LeakyBucketConfig(capacity=4, seconds=2)
+context_sync = SyncLeakyBucket(config)  # use the same config as above
+for _ in range(10):
+    with context_sync as thing:
+        print(f"Acquired 1 unit using context manager: {thing._bucket_level}")
+        print(f"Current level {_} sent at {time.strftime('%X')}")
+        time.sleep(0.3)  # simulate some work being done
+print("Exited context manager.", context_sync._bucket_level)
+# wait 1 second to let the bucket leak: should lower level from 4 --> 2
+# our leak rate is 4 per 2 seconds aka 2 per second; hence, after 1 second, we should have 2 left in the bucket
+time.sleep(1)
+context_sync._leak()  # update the bucket level after waiting -- just to illustrate the leak
+print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
 ```
