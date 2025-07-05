@@ -1,0 +1,114 @@
+"""Leaky Bucket Rate Limiter Implementation"""
+
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+from types import TracebackType
+from typing import NamedTuple
+
+
+@dataclass
+class LeakyBucketConfig:
+    """Configuration for the Leaky Bucket Rate Limiter"""
+
+    capacity: int = 10
+    """Maximum number of items the bucket can hold i.e. number of requests that can be processed at once"""
+
+    seconds: float = 1
+    """Up to `capacity` acquisitions are allowed within this time period in a burst"""
+
+    def __post_init__(self):
+        """Validate the configuration parameters"""
+        leak_rate_per_sec = self.capacity / self.seconds
+        if leak_rate_per_sec <= 0:
+            raise ValueError("leak_rate_per_sec must be positive and non-zero")
+
+        if self.capacity < 1:
+            raise ValueError("capacity must be at least 1")
+
+
+class Capacity(NamedTuple):
+    """Information about the current capacity of the leaky bucket"""
+
+    has_capacity: bool
+    """Indicates if the bucket has enough capacity to accommodate the requested amount"""
+
+    needed_capacity: float
+    """Amount of capacity needed to accommodate the request, if any"""
+
+
+class SyncLeakyBucket:
+    """Leaky Bucket Rate Limiter
+
+    Args:
+        leaky_bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
+
+    Note:
+        This implementation is synchronous and supports bursts up to the capacity within the specified time period
+    """
+
+    # can set this up as a param for acquire to be variable in the future
+
+    def __init__(self, leaky_bucket_config: LeakyBucketConfig | None):
+        # import config and set attributes
+        config = leaky_bucket_config or LeakyBucketConfig()
+        for key, value in vars(config).items():
+            setattr(self, key, value)
+
+        self.leak_rate = self.capacity / self.seconds  # units per second
+
+        self._bucket_level = 0  # current volume in the bucket
+        self._last_leak = time.monotonic()  # last leak time
+
+    def _leak(self) -> None:
+        """Leak the bucket based on the elapsed time since the last leak"""
+        now = time.monotonic()
+        elapsed = now - self._last_leak
+        self._bucket_level = max(0.0, self._bucket_level - elapsed * self.leak_rate)
+        self._last_leak = now
+
+    def capacity_info(self, amount: float = 1) -> Capacity:
+        """Get the current capacity information of the leaky bucket
+
+        Args:
+            amount: The amount of capacity to check for, defaults to 1
+
+        Returns:
+            A named tuple indicating if the bucket has enough capacity and how much more is needed
+        """
+        self._leak()
+        needed = self._bucket_level + amount - self.capacity
+        return Capacity(has_capacity=needed <= 0, needed_capacity=needed)
+
+    def acquire(self, amount: float = 1) -> None:
+        """Acquire capacity from the leaky bucket, blocking until enough capacity is available.
+
+        This method will block and sleep until the requested amount can be acquired
+        without exceeding the bucket's capacity, simulating rate limiting.
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+        """
+        # don't need a check for amount <= capacity as amount is 1 and capacity is >= 1
+
+        capacity_info = self.capacity_info()
+        while not capacity_info.has_capacity:
+            needed = capacity_info.needed_capacity
+            # Amount we need to wait to leak (either part or the entire capacity)
+            wait_time = max(0.0, needed / self.leak_rate) if needed > 0 else self._bucket_level / self.leak_rate
+            if wait_time > 0:
+                time.sleep(wait_time)
+
+            capacity_info = self.capacity_info()
+
+        self._bucket_level += amount
+
+    def __enter__(self) -> SyncLeakyBucket:
+        """Enter the context manager, acquiring resources if necessary"""
+        self.acquire()
+        return self
+
+    def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+        """Exit the context manager, releasing any resources if necessary"""
+        return None
