@@ -8,7 +8,7 @@
 | Algorithms                  | Sync |  Async  |
 |:----------------------------|:----:|:-------:|
 | Leaky Bucket                | Yes  |   TBD   |
-| Token Bucket                | TBD  |   TBD   |
+| Token Bucket                | Yes  |   TBD   |
 | Generic Cell Rate Algorithm | TBD  |   TBD   |
 | LLM-Token                   | TBD  |   TBD   |
 
