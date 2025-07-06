@@ -1,4 +1,4 @@
-"""Leaky Bucket Rate Limiter Implementation"""
+"""Token Bucket Rate Limiter Implementation"""
 
 from __future__ import annotations
 
@@ -9,25 +9,26 @@ from typing import NamedTuple
 
 
 @dataclass
-class LeakyBucketConfig:
-    """Configuration for the Leaky Bucket Rate Limiter"""
+class TokenBucketConfig:
+    """Configuration for the Token Bucket Rate Limiter"""
 
     capacity: int = 10
-    """Maximum number of items the bucket can hold i.e. number of requests that can be processed at once"""
+    """Maximum number of tokens the bucket can hold i.e. number of requests that can be processed at once"""
 
     seconds: float = 1
     """Up to `capacity` acquisitions are allowed within this time period in a burst"""
 
     def __post_init__(self):
         """Validate the configuration parameters"""
-        leak_rate_per_sec = self.capacity / self.seconds
-        if leak_rate_per_sec <= 0:
-            raise ValueError("leak_rate_per_sec must be positive and non-zero")
+        fill_rate_per_sec = self.capacity / self.seconds
+        if fill_rate_per_sec <= 0:
+            raise ValueError("fill_rate_per_sec must be positive and non-zero")
 
         if self.capacity < 1:
             raise ValueError("capacity must be at least 1")
 
 
+# TODO: pull this out into a config module (same as the leaky bucket file)
 class Capacity(NamedTuple):
     """Information about the current capacity of the leaky bucket"""
 
@@ -38,33 +39,33 @@ class Capacity(NamedTuple):
     """Amount of capacity needed to accommodate the request, if any"""
 
 
-class SyncLeakyBucket:
-    """Leaky Bucket Rate Limiter
+class SyncTokenBucket:
+    """Token Bucket Rate Limiter
 
     Args:
-        leaky_bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
+        token_bucket_config: Configuration for the token bucket with the max capacity and time period in seconds
 
     Note:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, leaky_bucket_config: LeakyBucketConfig | None):
+    def __init__(self, token_bucket_config: TokenBucketConfig | None):
         # import config and set attributes
-        config = leaky_bucket_config or LeakyBucketConfig()
+        config = token_bucket_config or TokenBucketConfig()
         for key, value in vars(config).items():
             setattr(self, key, value)
 
-        self.leak_rate = self.capacity / self.seconds  # units per second
+        self.fill_rate = self.capacity / self.seconds  # units per second
 
-        self._bucket_level = 0  # current volume in the bucket
-        self._last_leak = time.monotonic()  # last leak time
+        self._bucket_level = self.capacity  # current volume of tokens in the bucket
+        self._last_fill = time.monotonic()  # last refill time
 
-    def _leak(self) -> None:
-        """Leak the bucket based on the elapsed time since the last leak"""
+    def _fill(self) -> None:
+        """Fill the bucket based on the elapsed time since the last fill"""
         now = time.monotonic()
-        elapsed = now - self._last_leak
-        self._bucket_level = max(0.0, self._bucket_level - elapsed * self.leak_rate)
-        self._last_leak = now
+        elapsed = now - self._last_fill
+        self._bucket_level = min(self.capacity, self._bucket_level + elapsed * self.fill_rate)
+        self._last_fill = now
 
     def capacity_info(self, amount: float = 1) -> Capacity:
         """Get the current capacity information of the leaky bucket
@@ -75,12 +76,13 @@ class SyncLeakyBucket:
         Returns:
             A named tuple indicating if the bucket has enough capacity and how much more is needed
         """
-        self._leak()
-        needed = self._bucket_level + amount - self.capacity
+        self._fill()
+        # we need at least `amount` tokens to proceed
+        needed = amount - self._bucket_level
         return Capacity(has_capacity=needed <= 0, needed_capacity=needed)
 
     def acquire(self, amount: float = 1) -> None:
-        """Acquire capacity from the leaky bucket, blocking until enough capacity is available.
+        """Acquire capacity from the token bucket, blocking until enough capacity is available.
 
         This method will block and sleep until the requested amount can be acquired
         without exceeding the bucket's capacity, simulating rate limiting.
@@ -100,17 +102,17 @@ class SyncLeakyBucket:
         capacity_info = self.capacity_info()
         while not capacity_info.has_capacity:
             needed = capacity_info.needed_capacity
-            # amount we need to wait to leak (either part or the entire capacity)
+            # amount we need to wait to leak
             # needed is guaranteed to be positive here, so we can use it directly
-            wait_time = needed / self.leak_rate
+            wait_time = needed / self.fill_rate
             if wait_time > 0:
                 time.sleep(wait_time)
 
             capacity_info = self.capacity_info()
 
-        self._bucket_level += amount
+        self._bucket_level -= amount
 
-    def __enter__(self) -> SyncLeakyBucket:
+    def __enter__(self) -> SyncTokenBucket:
         """Enter the context manager, acquiring resources if necessary"""
         self.acquire()
         return self

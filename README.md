@@ -1,17 +1,22 @@
 # Rate Limiting Algorithms
 
+> [!IMPORTANT]
+> This is just for my own knowledge. Please do not use this if you stumble upon it.
+
 ## Algorithms
 
 | Algorithms                  | Sync |  Async  |
 |:----------------------------|:----:|:-------:|
 | Leaky Bucket                | Yes  |   TBD   |
-| Token Bucket                | TBD  |   TBD   |
+| Token Bucket                | Yes  |   TBD   |
 | Generic Cell Rate Algorithm | TBD  |   TBD   |
 | LLM-Token                   | TBD  |   TBD   |
 
 > [!NOTE]  
-> Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities
-> With asyncio, we use cooperative multitasking, not preemptive multi-threading
+> Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities. With asyncio, we use cooperative multitasking, not preemptive multi-threading
+
+> [!NOTE]
+> All algorithms default to traffic shaping patterns as opposed to traffic policing. This means that transmitted pieces of data are not dropped and we wait until the request can be completed barring a timeout.
 
 ## Notes:
 
@@ -98,5 +103,36 @@ print("Exited context manager.", context_sync._bucket_level)
 # our leak rate is 4 per 2 seconds aka 2 per second; hence, after 1 second, we should have 2 left in the bucket
 time.sleep(1)
 context_sync._leak()  # update the bucket level after waiting -- just to illustrate the leak
+print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
+```
+
+### Token Bucket
+
+Synchronous - similar to the above examples
+
+```python
+# context manager
+
+import time
+
+from rate_limit.leaky_bucket import SyncTokenBucket, TokenBucketConfig
+
+# 4 requests per 2 seconds and a 4 second burst capacity
+config = TokenBucketConfig(capacity=4, seconds=2)
+context_sync = SyncTokenBucket(config)  # use the same config as above
+for _ in range(10):
+    with context_sync as thing:
+        print(f"Acquired 1 unit using context manager: {thing._bucket_level}")
+        print(f"Current level {_} sent at {time.strftime('%X')}")
+        #time.sleep(0.3)  # simulate some work being done
+print("Exited context manager.", context_sync._bucket_level)
+# wait 1 second to let the bucket leak: should lower level from 4 --> 2
+# our leak rate is 4 per 2 seconds aka 2 per second; hence, after 1 second, we should have 2 left in the bucket
+time.sleep(1)
+context_sync._fill()  # update the bucket level after waiting -- just to illustrate the leak
+print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
+
+time.sleep(1)
+context_sync._fill()
 print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
 ```
