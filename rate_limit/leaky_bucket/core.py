@@ -48,8 +48,6 @@ class SyncLeakyBucket:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    # can set this up as a param for acquire to be variable in the future
-
     def __init__(self, leaky_bucket_config: LeakyBucketConfig | None):
         # import config and set attributes
         config = leaky_bucket_config or LeakyBucketConfig()
@@ -89,14 +87,22 @@ class SyncLeakyBucket:
 
         Args:
             amount: The amount of capacity to acquire, defaults to 1
+
+        Raises:
+            ValueError: If the requested amount exceeds the bucket's capacity
+
+        Notes:
+            The while loop is just to make sure nothing funny happens while waiting
         """
-        # don't need a check for amount <= capacity as amount is 1 and capacity is >= 1
+        if amount > self.capacity:
+            raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
 
         capacity_info = self.capacity_info()
         while not capacity_info.has_capacity:
             needed = capacity_info.needed_capacity
-            # Amount we need to wait to leak (either part or the entire capacity)
-            wait_time = max(0.0, needed / self.leak_rate) if needed > 0 else self._bucket_level / self.leak_rate
+            # amount we need to wait to leak (either part or the entire capacity)
+            # needed is guaranteed to be positive here, so we can use it directly
+            wait_time = needed / self.leak_rate
             if wait_time > 0:
                 time.sleep(wait_time)
 
