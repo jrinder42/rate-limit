@@ -58,6 +58,11 @@ uv export -o requirements.txt --quiet
 
 ## Usage
 
+TODO: cleanup
+
+> [!NOTE]
+> All of the below algorithms should produce identical results with identical parameters
+
 ### Leaky Bucket
 
 Synchronous
@@ -135,4 +140,50 @@ print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
 time.sleep(1)
 context_sync._fill()
 print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
+```
+
+### Generic Cell Rate Algorithm
+
+> [!NOTE]
+> Can be either the virtual scheduling algorithm or the continuous leaky bucket algorithm
+
+```python
+# context manager
+
+from datetime import datetime
+
+from rate_limit.generic_cell_rate import (
+    GCRAConfig,
+    LeakyBucketGCRA,
+    VirtualSchedulingGCRA,
+)
+
+# 3 requests per 1.5 seconds and a 3 second burst capacity
+config = GCRAConfig(capacity=3, seconds=1.5)
+context_sync = LeakyBucketGCRA(config)  # can swap with VirtualSchedulingGCRA
+for _ in range(12):
+    with context_sync as thing:
+        print(f"Current level {_} sent at {datetime.now().strftime('%X.%f')}")
+```
+
+```python
+# no context manager, use directly
+
+from datetime import datetime
+
+from rate_limit.generic_cell_rate import (
+    GCRAConfig,
+    LeakyBucketGCRA,
+    VirtualSchedulingGCRA,
+)
+
+# 10 requests per 5 seconds and a 10 second burst capacity
+config = GCRAConfig(capacity=10, seconds=5)
+sync_bucket = LeakyBucketGCRA(config)  # can swap with VirtualSchedulingGCRA
+for i in range(12):
+    if i % 2 == 0:
+        sync_bucket.acquire(1)
+    else:
+        sync_bucket.acquire(2)
+    print(f"Current level {i + 1} sent at {datetime.now().strftime('%X.%f')}")
 ```
