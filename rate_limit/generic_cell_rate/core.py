@@ -31,7 +31,7 @@ class GCRAConfig:
             raise ValueError("capacity must be at least 1")
 
 
-class VirtualSchedulingGCRA:
+class SyncVirtualSchedulingGCRA:
     """Virtual Scheduling Generic Cell Rate Algorithm Rate Limiter
 
     Args:
@@ -84,7 +84,7 @@ class VirtualSchedulingGCRA:
 
         self._tat = max(t_a, self._tat) + amount * self.T
 
-    def __enter__(self) -> VirtualSchedulingGCRA:
+    def __enter__(self) -> SyncVirtualSchedulingGCRA:
         """Enter the context manager, acquiring resources if necessary
 
         Returns:
@@ -104,7 +104,7 @@ class VirtualSchedulingGCRA:
         return None
 
 
-class LeakyBucketGCRA:
+class SyncLeakyBucketGCRA:
     """Continuous-state Leaky Bucket Rate Limiter
 
     Args:
@@ -165,7 +165,7 @@ class LeakyBucketGCRA:
         self._bucket_level = max(0.0, self._bucket_level) + amount * self.T
         self._last_leak = t_a
 
-    def __enter__(self) -> LeakyBucketGCRA:
+    def __enter__(self) -> SyncLeakyBucketGCRA:
         """Enter the context manager, acquiring resources if necessary
 
         Returns:
