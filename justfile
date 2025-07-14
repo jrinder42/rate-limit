@@ -29,13 +29,13 @@ develop: clean-pyc
 # check out the black docs to understand what is going on / make sure the python version is the same as .blazar.yaml
 [private]
 lint-server:
-    uv run black --check --diff --quiet .
+    uv run black --check --diff --quiet $all_py_files
     @echo $?
     uv run isort --profile black $all_files --diff
 
 [private]
 lint-sql:
-    uv run sqlfluff lint sql/
+    uv run sqlfluff lint $sql_folder
 
 # pylint linter
 pylint:
@@ -56,7 +56,7 @@ flake8:
 
 # ruff lint
 ruff-lint:
-    uv run ruff check
+    uv run ruff check $all_py_files
 
 # linting
 lint:
@@ -69,10 +69,10 @@ lint:
 
 [private]
 format-server:
-    uv run black --quiet .
+    uv run black --quiet $all_py_files
     uv run isort --profile black $all_files
     uv run sqlfluff fix $sql_folder
-    uv run ruff check --fix
+    uv run ruff check --fix $all_py_files
     #uv run ruff format
 
 # formatting
