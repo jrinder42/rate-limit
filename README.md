@@ -9,7 +9,7 @@
 |:----------------------------|:----:|:-------:|
 | Leaky Bucket                | Yes  |   TBD   |
 | Token Bucket                | Yes  |   TBD   |
-| Generic Cell Rate Algorithm | TBD  |   TBD   |
+| Generic Cell Rate Algorithm | Yes  |   TBD   |
 | LLM-Token                   | TBD  |   TBD   |
 
 > [!NOTE]  
@@ -154,13 +154,13 @@ from datetime import datetime
 
 from rate_limit.generic_cell_rate import (
     GCRAConfig,
-    LeakyBucketGCRA,
-    VirtualSchedulingGCRA,
+    SyncLeakyBucketGCRA,
+    SyncVirtualSchedulingGCRA,
 )
 
 # 3 requests per 1.5 seconds and a 3 second burst capacity
 config = GCRAConfig(capacity=3, seconds=1.5)
-context_sync = LeakyBucketGCRA(config)  # can swap with VirtualSchedulingGCRA
+context_sync = SyncLeakyBucketGCRA(config)  # can swap with VirtualSchedulingGCRA
 for _ in range(12):
     with context_sync as thing:
         print(f"Current level {_} sent at {datetime.now().strftime('%X.%f')}")
@@ -173,13 +173,13 @@ from datetime import datetime
 
 from rate_limit.generic_cell_rate import (
     GCRAConfig,
-    LeakyBucketGCRA,
-    VirtualSchedulingGCRA,
+    SyncLeakyBucketGCRA,
+    SyncVirtualSchedulingGCRA,
 )
 
 # 10 requests per 5 seconds and a 10 second burst capacity
 config = GCRAConfig(capacity=10, seconds=5)
-sync_bucket = LeakyBucketGCRA(config)  # can swap with VirtualSchedulingGCRA
+sync_bucket = SyncLeakyBucketGCRA(config)  # can swap with SyncVirtualSchedulingGCRA
 for i in range(12):
     if i % 2 == 0:
         sync_bucket.acquire(1)
