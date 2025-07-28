@@ -226,3 +226,12 @@ class AsyncLeakyBucket:
                 raise TimeoutError(f"Acquire timed out after {timeout} seconds for amount={amount}") from error
         else:
             await self._semaphore_acquire(amount)
+
+    async def __aenter__(self) -> AsyncLeakyBucket:
+        """Enter the context manager, acquiring resources if necessary"""
+        await self.acquire()
+        return self
+
+    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+        """Exit the context manager, releasing any resources if necessary"""
+        return None
