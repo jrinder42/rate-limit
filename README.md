@@ -5,25 +5,18 @@
 
 ## Algorithms
 
-| Algorithms                  | Sync |  Async  |
-|:----------------------------|:----:|:-------:|
-| Leaky Bucket                | Yes  |   TBD   |
-| Token Bucket                | Yes  |   TBD   |
-| Generic Cell Rate Algorithm | Yes  |   TBD   |
-| LLM-Token                   | TBD  |   TBD   |
+| Algorithms                  | Sync | Async |
+|:----------------------------|:----:|:-----:|
+| Leaky Bucket                | Yes  |  Yes  |
+| Token Bucket                | Yes  |  TBD  |
+| Generic Cell Rate Algorithm | Yes  |  TBD  |
+| LLM-Token                   | TBD  |  TBD  |
 
 > [!NOTE]  
-> Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities. With asyncio, we use cooperative multitasking, not preemptive multi-threading
+> Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities. With asyncio, we use non-blocking cooperative multitasking, not preemptive multi-threading
 
 > [!NOTE]
 > All algorithms default to traffic shaping patterns as opposed to traffic policing. This means that transmitted pieces of data are not dropped and we wait until the request can be completed barring a timeout.
-
-## Notes:
-
-Async
-
-- Clean up the naming / add NamedTuples
-- Points out potential race condition at the end of the wakeup handler (timer and future callback can call `_wake_next` concurrently)
 
 ## Development
 
@@ -186,4 +179,51 @@ for i in range(12):
     else:
         sync_bucket.acquire(2)
     print(f"Current level {i + 1} sent at {datetime.now().strftime('%X.%f')}")
+```
+
+## Async Rate Limiting
+
+### Leaky Bucket
+
+```python
+import asyncio
+import time
+
+from rate_limit.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
+
+
+async def main():
+    bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+    for i in range(10):
+        await bucket.acquire()
+        print(f"Request {i + 1} allowed at {time.strftime('%X')}")
+
+asyncio.run(main())
+```
+
+uneven requests
+
+```python
+import asyncio
+import time
+
+from rate_limit.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
+
+
+async def request(bucket, amount, idx):
+    await bucket.acquire(amount)
+    print(f"Request {idx} (amount={amount}) allowed at {time.strftime('%X')}")
+
+
+async def main():
+    bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=3, seconds=3), max_concurrent=5)
+    amounts = [1, 3, 2, 1, 2, 3, 1]
+    tasks = [
+        asyncio.create_task(request(bucket, amt, i))
+        for i, amt in enumerate(amounts, 1)
+    ]
+    await asyncio.gather(*tasks)
+
+
+asyncio.run(main())
 ```
