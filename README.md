@@ -227,3 +227,44 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Async HTTP Requests
+
+```python
+import httpx
+import asyncio
+import random
+import time
+from rate_limit.extra.leaky_bucket.core import AsyncLeakyBucket, LeakyBucketConfig
+
+async def fetch_url(bucket, client, url, idx, timeout):
+    try:
+        await bucket.acquire(timeout=timeout)
+        response = await client.get(url, timeout=timeout)
+        text = response.text
+        print(f"Request {idx} succeeded: {len(text)} bytes at {time.strftime('%X')}")
+    except asyncio.TimeoutError:
+        print(f"Request {idx} timed out by rate limiter at {time.strftime('%X')}")
+    except Exception as e:
+        print(f"Request {idx} failed: {e}")
+
+async def main():
+    bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+    urls = [
+        "https://example.com",
+        "https://httpbin.org/get",
+        "https://httpbin.org/delay/1",
+        "https://httpbin.org/delay/2",
+        "https://example.com",
+        "https://httpbin.org/get"
+    ]
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            fetch_url(bucket, client, url, idx, random.uniform(0.5, 2.5))
+            for idx, url in enumerate(urls, 1)
+        ]
+        await asyncio.gather(*tasks)
+    await bucket.shutdown()
+
+asyncio.run(main())
+```
