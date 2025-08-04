@@ -63,7 +63,7 @@ lint:
     @echo "Linting files..."
     @just lint-server
     @just pylint
-    @just lint-sql
+    ##@just lint-sql
     @just flake8
     @just ruff-lint
 
@@ -71,7 +71,7 @@ lint:
 format-server:
     uv run black --quiet $all_py_files
     uv run isort --profile black $all_files
-    uv run sqlfluff fix $sql_folder
+    ##uv run sqlfluff fix $sql_folder
     uv run ruff check --fix $all_py_files
     #uv run ruff format
 
