@@ -231,11 +231,14 @@ asyncio.run(main())
 ## Async HTTP Requests
 
 ```python
-import httpx
 import asyncio
 import random
 import time
+
+import httpx
+
 from rate_limit.extra.leaky_bucket.core import AsyncLeakyBucket, LeakyBucketConfig
+
 
 async def fetch_url(bucket, client, url, idx, timeout):
     try:
