@@ -7,7 +7,7 @@ import time
 from contextlib import nullcontext
 from dataclasses import dataclass
 from types import TracebackType
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 
 from cachetools import LRUCache, TTLCache
 
@@ -238,23 +238,51 @@ class AsyncLeakyBucket:
         """Exit the context manager, releasing any resources if necessary"""
         return None
 
-def rate_limit(capacity=10, seconds=1):
+
+def rate_limit(capacity: int = 10, seconds: float = 1) -> Callable:
+    """Decorator to apply a synchronous leaky bucket rate limit to a function.
+
+    Args:
+        capacity: Maximum number of requests allowed in the bucket, defaults to 10
+        seconds: Time period in seconds for the bucket to refill, defaults to 1
+
+    Returns:
+        A decorator that applies the rate limit to the function
+    """
     bucket = SyncLeakyBucket(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             with bucket:
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
-def async_rate_limit(capacity=10, seconds=1, max_concurrent=None):
+
+def async_rate_limit(capacity: int = 10, seconds: float = 1, max_concurrent: int | None = None) -> Callable:
+    """Decorator to apply an asynchronous leaky bucket rate limit to a function.
+
+    Args:
+        capacity: Maximum number of requests allowed in the bucket, defaults to 10
+        seconds: Time period in seconds for the bucket to refill, defaults to 1
+        max_concurrent: Maximum number of concurrent requests allowed, defaults to None (no limit)
+
+    Returns:
+        A decorator that applies the rate limit to the function
+    """
     bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent)
+
     def decorator(func):
         async def wrapper(*args, **kwargs):
             async with bucket:
                 return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 def rate_limit_per_user(capacity=10, seconds=1):
     buckets = {}
@@ -266,14 +294,18 @@ def rate_limit_per_user(capacity=10, seconds=1):
             bucket = buckets[user_id]
             with bucket:
                 return func(user_id, *args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 # TODO: make user_id optional in a more elegant way than having a "global" rate limiter and user-level rate limiter
 def _get_user_cache(max_users, ttl):
     if ttl is not None:
         return TTLCache(maxsize=max_users, ttl=ttl)
     return LRUCache(maxsize=max_users)
+
 
 def rate_limit_per_user_v2(capacity=10, seconds=1, max_users=1000, ttl=None):
     buckets = _get_user_cache(max_users, ttl)
@@ -285,8 +317,11 @@ def rate_limit_per_user_v2(capacity=10, seconds=1, max_users=1000, ttl=None):
             bucket = buckets[user_id]
             with bucket:
                 return func(user_id, *args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 def async_rate_limit_per_user_v2(capacity=10, seconds=1, max_users=1000, ttl=None):
     buckets = _get_user_cache(max_users, ttl)
@@ -298,10 +333,14 @@ def async_rate_limit_per_user_v2(capacity=10, seconds=1, max_users=1000, ttl=Non
             bucket = buckets[user_id]
             async with bucket:
                 return await func(user_id, *args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
+# pylint: disable=all
+# ruff: noqa
 if __name__ == "__main__":
 
     @rate_limit(capacity=4, seconds=2)
@@ -313,7 +352,6 @@ if __name__ == "__main__":
             something()
         except Exception as e:
             print(f"Rate limit exceeded: {e}")
-    
 
     @rate_limit_per_user(capacity=4, seconds=2)
     def something_user(uid):  # first parameter is the user_id
@@ -326,6 +364,7 @@ if __name__ == "__main__":
             print(f"Rate limit exceeded: {e}")
 
     print("v2")
+
     @rate_limit_per_user_v2(capacity=2, seconds=1, max_users=3, ttl=600)  # TTLCache: 10 min/user
     def something_user_v2(user_id):
         print(f"User {user_id} called at {time.strftime('%X')}")
