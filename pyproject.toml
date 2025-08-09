@@ -4,9 +4,7 @@ version = "0.2.0"
 description = "Rate limiting package"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "cachetools>=6.1.0",
-]
+dependencies = []
 authors = [
     {name = "Jordan Rinder", email = "jordan.rinder@gmail.com"}
 ]
