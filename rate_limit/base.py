@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Protocol, Any
+from typing import Any, Protocol
 
 
 class SyncRateLimit(Protocol):
     """Synchronous Rate Limit Protocol"""
 
-    def __init__(self, config: Any) -> None:...
+    def __init__(self, config: Any) -> None:
+        ...
 
     def acquire(self) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available"""
@@ -37,7 +38,8 @@ class SyncRateLimit(Protocol):
 class AsyncRateLimit(Protocol):
     """Asynchronous Rate Limit Protocol"""
 
-    def __init__(self, config: Any, max_concurrent: int | None = None) -> None:...
+    def __init__(self, config: Any, max_concurrent: int | None = None) -> None:
+        ...
 
     def acquire(self) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available"""
