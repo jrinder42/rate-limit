@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Callable
 
-from rate_limit.base import AsyncRateLimit, SyncRateLimit
-from rate_limit.leaky_bucket.core import (
+from limitor.base import AsyncRateLimit, SyncRateLimit
+from limitor.leaky_bucket.core import (
     AsyncLeakyBucket,
     LeakyBucketConfig,
     SyncLeakyBucket,

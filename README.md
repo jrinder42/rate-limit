@@ -65,7 +65,7 @@ Synchronous
 
 import time
 
-from rate_limit.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
+from limitor.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
 
 # 4 requests per 2 seconds and a 4 second burst capacity
 config = LeakyBucketConfig(capacity=4, seconds=2)
@@ -74,7 +74,7 @@ for i in range(7):
     sync_bucket.acquire(1)
     print(f"Current level: {sync_bucket._bucket_level}")
     time.sleep(0.3)  # Simulate some work being done
-    
+
 print("Waiting for bucket to leak...")
 time.sleep(1)  # check how much leaks out of the bucket in 1 second
 sync_bucket._leak()  # update the bucket level after waiting
@@ -86,7 +86,7 @@ print(f"Current level after leaking: {sync_bucket._bucket_level}")
 
 import time
 
-from rate_limit.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
+from limitor.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
 
 # 4 requests per 2 seconds and a 4 second burst capacity
 config = LeakyBucketConfig(capacity=4, seconds=2)
@@ -113,7 +113,7 @@ Synchronous - similar to the above examples
 
 import time
 
-from rate_limit.leaky_bucket import SyncTokenBucket, TokenBucketConfig
+from limitor.leaky_bucket import SyncTokenBucket, TokenBucketConfig
 
 # 4 requests per 2 seconds and a 4 second burst capacity
 config = TokenBucketConfig(capacity=4, seconds=2)
@@ -122,7 +122,7 @@ for _ in range(10):
     with context_sync as thing:
         print(f"Acquired 1 unit using context manager: {thing._bucket_level}")
         print(f"Current level {_} sent at {time.strftime('%X')}")
-        #time.sleep(0.3)  # simulate some work being done
+        # time.sleep(0.3)  # simulate some work being done
 print("Exited context manager.", context_sync._bucket_level)
 # wait 1 second to let the bucket leak: should lower level from 4 --> 2
 # our leak rate is 4 per 2 seconds aka 2 per second; hence, after 1 second, we should have 2 left in the bucket
@@ -145,7 +145,7 @@ print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
 
 from datetime import datetime
 
-from rate_limit.generic_cell_rate import (
+from limitor.generic_cell_rate import (
     GCRAConfig,
     SyncLeakyBucketGCRA,
     SyncVirtualSchedulingGCRA,
@@ -164,7 +164,7 @@ for _ in range(12):
 
 from datetime import datetime
 
-from rate_limit.generic_cell_rate import (
+from limitor.generic_cell_rate import (
     GCRAConfig,
     SyncLeakyBucketGCRA,
     SyncVirtualSchedulingGCRA,
@@ -189,7 +189,7 @@ for i in range(12):
 import asyncio
 import time
 
-from rate_limit.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
+from limitor.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
 
 
 async def main():
@@ -197,6 +197,7 @@ async def main():
     for i in range(10):
         await bucket.acquire()
         print(f"Request {i + 1} allowed at {time.strftime('%X')}")
+
 
 asyncio.run(main())
 ```
@@ -207,7 +208,7 @@ uneven requests
 import asyncio
 import time
 
-from rate_limit.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
+from limitor.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
 
 
 async def request(bucket, amount, idx):
@@ -237,7 +238,7 @@ import time
 
 import httpx
 
-from rate_limit.extra.leaky_bucket.core import AsyncLeakyBucket, LeakyBucketConfig
+from limitor.extra.leaky_bucket.core import AsyncLeakyBucket, LeakyBucketConfig
 
 
 async def fetch_url(bucket, client, url, idx, timeout):
@@ -250,6 +251,7 @@ async def fetch_url(bucket, client, url, idx, timeout):
         print(f"Request {idx} timed out by rate limiter at {time.strftime('%X')}")
     except Exception as e:
         print(f"Request {idx} failed: {e}")
+
 
 async def main():
     bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
@@ -267,7 +269,8 @@ async def main():
             for idx, url in enumerate(urls, 1)
         ]
         await asyncio.gather(*tasks)
-    await bucket.shutdown()
+    await bucket.shutdownß()
 
+    
 asyncio.run(main())
 ```
