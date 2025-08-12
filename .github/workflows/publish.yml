@@ -77,6 +77,9 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      - name: Build package
+        run: uv build
+
       - name: Publish to PyPI using uv
         run: uv publish
         env:
