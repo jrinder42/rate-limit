@@ -1,6 +1,6 @@
 [project]
 name = "limitor"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Rate limiting package"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
