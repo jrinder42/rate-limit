@@ -39,9 +39,9 @@ jobs:
         id: pypi
         run: |
           if [[ "$IS_PRERELEASE" == "true" ]]; then
-            echo "pypi_url=https://test.pypi.org/legacy/" >> "$GITHUB_ENV"
+            echo "pypi_url=https://test.pypi.org/legacy/" >> "$GITHUB_OUTPUT"
           else
-            echo "pypi_url=https://upload.pypi.org/legacy/" >> "$GITHUB_ENV"
+            echo "pypi_url=https://upload.pypi.org/legacy/" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create GitHub Release
