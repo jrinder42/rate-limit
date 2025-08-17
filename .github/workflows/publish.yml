@@ -57,11 +57,47 @@ jobs:
             const script = require('.github/workflows/scripts/create_release.js')
             await script(github, context, core)
 
-  publish:
+  pypi-publish:
     name: Publish to PyPI
     needs: create-release
     runs-on: ubuntu-latest
-    environment: ${{ env.IS_PRERELEASE == 'true' && 'testpypi' || 'pypi' }}
+    if: env.IS_PRERELEASE == 'false'
+    environment: pypi
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ✅ Required for setuptools_scm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.4"
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI using uv
+        run: uv publish
+        env:
+          UV_PUBLISH_URL: ${{ env.PYPI_URL }}
+
+  testpypi-publish:
+    name: Publish to PyPI
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: env.IS_PRERELEASE == 'true'
+    environment: testpypi
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
