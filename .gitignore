@@ -167,3 +167,4 @@ cython_debug/
 # Custom for this project
 exploration/
 notebooks/
+*_version.py
