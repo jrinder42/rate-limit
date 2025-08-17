@@ -37,7 +37,7 @@ jobs:
       - name: Set PyPI repository
         id: pypi
         run: |
-          if [[ "${{ env.IS_PRERELEASE }}" == "true" ]]; then
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
             echo "PYPI_REPOSITORY=testpypi" >> "$GITHUB_ENV"
           else
             echo "PYPI_REPOSITORY=pypi" >> "$GITHUB_ENV"
