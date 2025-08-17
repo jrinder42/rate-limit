@@ -11,10 +11,9 @@ authors = [
 maintainers = [
   {name = "Jordan Rinder", email = "jordan.rinder@gmail.com"}
 ]
-license = {file = "LICENSE"}
+license-files = ["LICENSE"]
 keywords = ["Rate Limit"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     "Programming Language :: Python :: 3.12",
