@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      pypi_url: ${{ steps.pypi.outputs.pypi_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,9 +39,9 @@ jobs:
         id: pypi
         run: |
           if [[ "$IS_PRERELEASE" == "true" ]]; then
-            echo "PYPI_URL=https://test.pypi.org/legacy/" >> "$GITHUB_ENV"
+            echo "pypi_url=https://test.pypi.org/legacy/" >> "$GITHUB_OUTPUT"
           else
-            echo "PYPI_URL=https://upload.pypi.org/legacy/" >> "$GITHUB_ENV"
+            echo "pypi_url=https://upload.pypi.org/legacy/" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create GitHub Release
@@ -72,7 +73,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          python-version-file: ".python-version"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -89,4 +89,4 @@ jobs:
       - name: Publish to PyPI using uv
         run: uv publish
         env:
-          UV_PUBLISH_URL: ${{ env.PYPI_URL }}
+          UV_PUBLISH_URL: ${{ needs.create-release.outputs.pypi_url }}
