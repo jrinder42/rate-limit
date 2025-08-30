@@ -1,0 +1,25 @@
+site_name: My Docs
+
+nav:
+  - Home: index.md
+
+plugins:
+  - search
+  - mkdocstrings
+  - api-autonav:
+      modules: ['limitor']
+      nav_section_title: "API Reference"
+      module_options:
+        package.submodule:
+          docstring_style: google
+          show_signature: false
+      exclude_private: true
+
+theme:
+  name: material
+  features:
+    - content.code.annotate
+  highlightjs: true
+  hljs_languages:
+      - yaml
+      - python
