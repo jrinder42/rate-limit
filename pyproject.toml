@@ -32,15 +32,14 @@ include = ["limitor*"]
 dev = [
     "notebook>=7.3.3",
     "pre-commit",
-    "sqlfluff",
 ]
 testing = [
     "pytest>=8.2",
     "pytest-cov"
 ]
 ci = [
-    "black==23.11.0",
-    "isort==5.12.0",
+    "black",
+    "isort",
     "mypy",
     "ruff",
     "pylint",
@@ -51,12 +50,19 @@ ci = [
     "flake8-pyproject",  # this is an issue with the above, actually a dep for pydoclint[flake8]
     "flake8-pytest-style",
 ]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings-python",
+    "mkdocs-api-autonav",
+]
 
 [tool.uv]
 default-groups = [
     "dev",
     "testing",
     "ci",
+    "docs",
 ]
 
 [project.urls]
