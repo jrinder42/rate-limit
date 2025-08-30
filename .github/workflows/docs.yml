@@ -45,7 +45,7 @@ jobs:
             mkdocs-material-
 
       - name: Install dependencies
-        run: uv sync --group docs --locked
+        run: uv sync --only-group docs --locked
 
       - name: Build & deploy docs
-        run: mkdocs gh-deploy
+        run: uv run mkdocs gh-deploy
