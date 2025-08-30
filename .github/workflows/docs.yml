@@ -46,4 +46,4 @@ jobs:
         run: uv sync --only-group docs --locked
 
       - name: Build & deploy docs
-        run: uv run mkdocs gh-deploy
+        run: uv run mkdocs gh-deploy --force
