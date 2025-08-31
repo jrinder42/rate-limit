@@ -4,6 +4,7 @@ References:
 - https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
 - https://en.wikipedia.org/wiki/Leaky_bucket
 """
+
 from __future__ import annotations
 
 import time

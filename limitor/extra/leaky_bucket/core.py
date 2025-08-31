@@ -1,4 +1,5 @@
 """Async Leaky Bucket Rate Limiter (predictable, queue-based version)"""
+
 from __future__ import annotations
 
 import asyncio
