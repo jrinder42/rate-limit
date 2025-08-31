@@ -1,4 +1,5 @@
 """Test if the package can be imported."""
+
 from importlib.util import find_spec
 
 
