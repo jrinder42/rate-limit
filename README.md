@@ -77,6 +77,98 @@ You should now be able to verify the pages deployment in the Actions list.
 
 ## Usage
 
+### LLM Token-Based Rate Limiting
+
+```python
+import random
+import time
+from typing import Callable
+
+from limitor.base import SyncRateLimit
+from limitor.leaky_bucket.core import LeakyBucketConfig, SyncLeakyBucket
+
+
+def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket) -> Callable:
+    bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            amount = kwargs.get("amount", 1)
+            bucket.acquire(amount=amount)
+            return func(*args, **kwargs)
+        return wrapper
+
+    return decorator
+
+# limit of 100,000 tokens per second
+
+@rate_limit(capacity=100_000, seconds=1)
+def process_request(amount=1):
+    print(f"This is a rate-limited function: {time.strftime('%X')} - {amount} tokens")
+
+for _ in range(100):
+    # generate random prompt tokens between 5,000 and 30,000 for 100 sample requests
+    llm_prompt_tokens = random.randint(5_000, 30_000)
+    try:
+        process_request(amount=llm_prompt_tokens)
+    except Exception as error:
+        print(f"Rate limit exceeded: {error}")
+```
+
+### With User-Specific Rate Limits + Cache
+
+```python
+import time
+from typing import Optional
+
+from cachetools import LRUCache, TTLCache
+
+from limitor.base import SyncRateLimit
+from limitor.leaky_bucket.core import (
+    AsyncLeakyBucket,
+    LeakyBucketConfig,
+    SyncLeakyBucket,
+)
+
+
+def _get_user_cache(max_users, ttl):
+    if ttl is not None:
+        return TTLCache(maxsize=max_users, ttl=ttl)
+    return LRUCache(maxsize=max_users)
+
+def rate_limit_per_user(capacity=10, seconds=1, max_users=1000, ttl=None, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket):
+    buckets = _get_user_cache(max_users, ttl)
+    global_bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+
+    def decorator(func):
+        # optional use_id. if not set, it will default to a regular global rate limiter
+        # if user_id is not set, this means the max_users / ttl parameters will be ignored
+        def wrapper(*args, user_id=None, **kwargs):
+            if user_id is None:
+                bucket = global_bucket
+            else:
+                if user_id not in buckets:
+                    buckets[user_id] = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+                bucket = buckets[user_id]
+            with bucket:
+                return func(user_id, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+@rate_limit_per_user(capacity=2, seconds=1, max_users=3, ttl=600)  # TTLCache: 10 min/user
+def something_user(user_id):
+    print(f"User {user_id} called at {time.strftime('%X')}")
+
+for _ in range(20):
+    try:
+        x = 1 if _ % 2 == 0 else 0
+        something_user(user_id=x)
+    except Exception as error:
+        print(f"Rate limit exceeded: {error}")
+```
+
 TODO: cleanup
 
 > [!NOTE]
