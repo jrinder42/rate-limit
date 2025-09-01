@@ -45,7 +45,6 @@ ci = [
     "pylint",
     "sqlfluff",
     "pyupgrade",
-    "bandit[toml]",
     "pydoclint[flake8]",
     "flake8-pyproject",  # this is an issue with the above, actually a dep for pydoclint[flake8]
     "flake8-pytest-style",
