@@ -46,10 +46,6 @@ pylint:
     # Only committed Python files
     #git ls-tree -r HEAD --name-only "*.py" | xargs pylint
 
-# bandit
-bandit:
-    uv run bandit -c pyproject.toml -r $all_files
-
 # flake8 / pydoclint
 flake8:
     uv run flake8 --toml-config=pyproject.toml --select=DOC $all_files
@@ -105,26 +101,3 @@ coverage:
     coverage report -m
 
 # [optional] utility functions
-
-# add a package
-add-package package:
-    #!/usr/bin/env sh
-    if uv pip list | grep -F {{package}} > /dev/null 2>&1; then
-        echo "Package {{package}} is already installed.";
-    else
-        echo "Package {{package}} not found.";
-        uv add {{package}};
-        uv export -o requirements.txt --quiet;
-    fi
-
-# remove a package
-remove-package package:
-    #!/usr/bin/env sh
-    if uv pip list | grep -F {{package}} > /dev/null 2>&1; then
-        uv remove {{package}} --no-sync;
-        uv sync;
-        uv export -o requirements.txt --quiet;
-        echo "Package {{package}} removed.";
-    else
-        echo "Package {{package}} not found.";
-    fi
