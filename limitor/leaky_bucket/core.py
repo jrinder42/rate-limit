@@ -14,13 +14,13 @@ from typing import NamedTuple
 class LeakyBucketConfig:
     """Configuration for the Leaky Bucket Rate Limiter"""
 
-    capacity: int = 10
+    capacity: float = 10
     """Maximum number of items the bucket can hold i.e. number of requests that can be processed at once"""
 
     seconds: float = 1
     """Up to `capacity` acquisitions are allowed within this time period in a burst"""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate the configuration parameters"""
         leak_rate_per_sec = self.capacity / self.seconds
         if leak_rate_per_sec <= 0:
@@ -53,12 +53,12 @@ class SyncLeakyBucket:
     def __init__(self, leaky_bucket_config: LeakyBucketConfig | None):
         # import config and set attributes
         config = leaky_bucket_config or LeakyBucketConfig()
-        for key, value in vars(config).items():
-            setattr(self, key, value)
+        self.capacity = config.capacity
+        self.seconds = config.seconds
 
         self.leak_rate = self.capacity / self.seconds  # units per second
 
-        self._bucket_level = 0  # current volume in the bucket
+        self._bucket_level = 0.0  # current volume in the bucket
         self._last_leak = time.monotonic()  # last leak time
 
     def _leak(self) -> None:
@@ -135,8 +135,8 @@ class AsyncLeakyBucket:
 
     def __init__(self, leaky_bucket_config: LeakyBucketConfig | None = None, max_concurrent: int | None = None):
         config = leaky_bucket_config or LeakyBucketConfig()
-        for key, value in vars(config).items():
-            setattr(self, key, value)
+        self.capacity = config.capacity
+        self.seconds = config.seconds
 
         self.leak_rate = self.capacity / self.seconds
         self._bucket_level = 0.0

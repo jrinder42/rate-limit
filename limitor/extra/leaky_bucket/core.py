@@ -4,18 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import time
-from contextlib import nullcontext
 from dataclasses import dataclass
 from types import TracebackType
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Any
 
 
 @dataclass
 class LeakyBucketConfig:
-    capacity: int = 10
+    capacity: float = 10
     seconds: float = 1.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         leak_rate_per_sec = self.capacity / self.seconds
         if leak_rate_per_sec <= 0:
             raise ValueError("leak_rate_per_sec must be positive and non-zero")
@@ -45,13 +44,13 @@ class AsyncLeakyBucket:
 
     def __init__(self, leaky_bucket_config: LeakyBucketConfig | None = None):
         config = leaky_bucket_config or LeakyBucketConfig()
-        for key, value in vars(config).items():
-            setattr(self, key, value)
+        self.capacity = config.capacity
+        self.seconds = config.seconds
 
         self.leak_rate = self.capacity / self.seconds
         self._bucket_level = 0.0
         self._last_leak = time.monotonic()
-        self._queue = asyncio.Queue()
+        self._queue: asyncio.Queue[Any] = asyncio.Queue()
         self._worker_task = asyncio.create_task(self._worker())
 
     def _leak(self) -> None:
@@ -175,14 +174,14 @@ class AsyncLeakyBucket:
 if __name__ == "__main__":
     print("Predictable queue example (no context manager)")
 
-    async def request_with_timeout(bucket, amount, idx, timeout):
+    async def request_with_timeout(bucket: AsyncLeakyBucket, amount: float, idx: int, timeout: float) -> None:
         try:
             await bucket.acquire(amount, timeout=timeout)
             print(f"Request {idx} (amount={amount}, timeout={timeout}) allowed at {time.strftime('%X')}")
         except TimeoutError as e:
             print(f"Request {idx} (amount={amount}, timeout={timeout}) timed out: {e}")
 
-    async def main():
+    async def main() -> None:
         bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
         requests = [
             (2, 1, 1),  # should succeed (bucket full)
@@ -200,7 +199,7 @@ if __name__ == "__main__":
 
     print("Even steven queue example (no context manager)")
 
-    async def main():
+    async def main() -> None:
         bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
         requests = [
             (1, 1, 1),  # should succeed (bucket full)
@@ -219,12 +218,12 @@ if __name__ == "__main__":
     # --- New Example: Using async context manager with concurrent requests ---
     print("Context manager example (concurrent requests, one per context)")
 
-    async def request_cm(bucket, idx):
+    async def request_cm(bucket: AsyncLeakyBucket, idx: int) -> None:
         async with bucket:
             print(f"[Context Manager] Request {idx} allowed at {time.strftime('%X')}")
             # await asyncio.sleep(0.2)  # Simulate work
 
-    async def main():
+    async def main() -> None:
         bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
         tasks = [asyncio.create_task(request_cm(bucket, i)) for i in range(1, 7)]
         await asyncio.gather(*tasks)
