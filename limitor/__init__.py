@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, TypeVar, ParamSpec, Awaitable
 
 from limitor.base import AsyncRateLimit, SyncRateLimit
 from limitor.leaky_bucket.core import (
@@ -11,8 +11,15 @@ from limitor.leaky_bucket.core import (
     SyncLeakyBucket,
 )
 
+P = ParamSpec("P")  # parameters
+R = TypeVar("R")  # return type
 
-def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket) -> Callable:
+
+def rate_limit(
+    capacity: float = 10,
+    seconds: float = 1,
+    bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to apply a synchronous leaky bucket rate limit to a function.
 
     Args:
@@ -25,8 +32,8 @@ def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRate
     """
     bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             with bucket:
                 return func(*args, **kwargs)
 
@@ -36,11 +43,11 @@ def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRate
 
 
 def async_rate_limit(
-    capacity: int = 10,
+    capacity: float = 10,
     seconds: float = 1,
     max_concurrent: int | None = None,
     bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
-) -> Callable:
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     """Decorator to apply an asynchronous leaky bucket rate limit to a function.
 
     Args:
@@ -54,8 +61,8 @@ def async_rate_limit(
     """
     bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent)
 
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             async with bucket:
                 return await func(*args, **kwargs)
 
@@ -71,7 +78,7 @@ if __name__ == "__main__":
     import time
 
     @rate_limit(capacity=2, seconds=2)
-    def something():
+    def something() -> None:
         print(f"This is a rate-limited function: {time.strftime('%X')}")
 
     for _ in range(10):
@@ -84,10 +91,10 @@ if __name__ == "__main__":
     print("async")
 
     @async_rate_limit(capacity=2, seconds=2)
-    async def something_async():
+    async def something_async() -> None:
         print(f"This is a rate-limited function: {time.strftime('%X')}")
 
-    async def main():
+    async def main() -> None:
         for _ in range(10):
             try:
                 await something_async()
