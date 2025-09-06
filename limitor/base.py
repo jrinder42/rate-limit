@@ -39,10 +39,10 @@ class AsyncRateLimit(Protocol):
 
     def __init__(self, config: Any, max_concurrent: int | None = None) -> None: ...
 
-    def acquire(self, amount: float = 1) -> None:
+    async def acquire(self, amount: float = 1) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available"""
 
-    def __aenter__(self) -> AsyncRateLimit:
+    async def __aenter__(self) -> AsyncRateLimit:
         """Enter the context manager, acquiring resources if necessary
 
         This method should return an instance of AsyncRateLimit
@@ -51,7 +51,7 @@ class AsyncRateLimit(Protocol):
             An instance of the rate limit context manager
         """
 
-    def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """Exit the context manager, releasing any resources if necessary
 
         Args:
