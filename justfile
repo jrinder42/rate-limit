@@ -48,7 +48,7 @@ pylint:
 
 # flake8 / pydoclint
 flake8:
-    uv run flake8 --toml-config=pyproject.toml --select=DOC $all_files
+    uv run flake8 --toml-config=pyproject.toml $all_py_files
 
 # ruff lint
 ruff-lint:
@@ -76,6 +76,10 @@ format:
     @echo "Formatting repository..."
     @just format-server
 
+# type checking
+type-check:
+    uv run mypy --strict $all_py_files  # add --strict after mypy
+
 # testing
 # handling errors
 [private]
@@ -93,6 +97,10 @@ unsafe-test:
 test:
     @echo "Running tests..."
     @just unsafe-test || @just handle-error
+
+# run everything except for code coverage
+check: format lint type-check test
+    @echo "All checks passed!"
 
 # code coverage, can also call package_name with {{package_name}}
 coverage:
