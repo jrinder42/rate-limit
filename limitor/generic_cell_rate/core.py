@@ -16,13 +16,13 @@ from types import TracebackType
 class GCRAConfig:
     """Configuration for the Token Bucket Rate Limiter"""
 
-    capacity: int = 10
+    capacity: float = 10
     """Maximum number of units we can hold i.e. number of requests that can be processed at once"""
 
     seconds: float = 1
     """Up to `capacity` acquisitions are allowed within this time period in a burst"""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate the configuration parameters"""
         fill_rate_per_sec = self.capacity / self.seconds
         if fill_rate_per_sec <= 0:
@@ -48,8 +48,8 @@ class SyncVirtualSchedulingGCRA:
     def __init__(self, gcra_config: GCRAConfig | None):
         # import config and set attributes
         config = gcra_config or GCRAConfig()
-        for key, value in vars(config).items():
-            setattr(self, key, value)
+        self.capacity = config.capacity
+        self.seconds = config.seconds
 
         self.leak_rate = self.capacity / self.seconds  # units per second
         self.T = 1 / self.leak_rate  # time to leak one unit
@@ -58,7 +58,7 @@ class SyncVirtualSchedulingGCRA:
         # self.tau = self.T * self.burst
 
         # theoretical arrival time (TAT)
-        self._tat = None
+        self._tat: float | None = None
 
     def acquire(self, amount: float = 1) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
@@ -121,8 +121,8 @@ class SyncLeakyBucketGCRA:
     def __init__(self, gcra_config: GCRAConfig | None):
         # import config and set attributes
         config = gcra_config or GCRAConfig()
-        for key, value in vars(config).items():
-            setattr(self, key, value)
+        self.capacity = config.capacity
+        self.seconds = config.seconds
 
         self.leak_rate = self.capacity / self.seconds  # units per second
         self.T = 1 / self.leak_rate  # time to leak one unit
@@ -130,8 +130,8 @@ class SyncLeakyBucketGCRA:
         # burst rate, but can't do this if the amount is variable
         # self.tau = self.T * self.burst
 
-        self._bucket_level = 0  # current volume in the bucket
-        self._last_leak = None  # same as last conforming time or LCT
+        self._bucket_level = 0.0  # current volume in the bucket
+        self._last_leak: float | None = None  # same as last conforming time or LCT
 
     def acquire(self, amount: float = 1) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
