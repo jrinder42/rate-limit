@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, TypeVar, ParamSpec, Awaitable
+from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from limitor.base import AsyncRateLimit, SyncRateLimit
 from limitor.leaky_bucket.core import (
