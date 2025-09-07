@@ -85,11 +85,11 @@ import time
 from typing import Callable
 
 from limitor.base import SyncRateLimit
-from limitor.leaky_bucket.core import LeakyBucketConfig, SyncLeakyBucket
-
+from limitor.configs import BucketConfig
+from limitor.leaky_bucket.core import SyncLeakyBucket
 
 def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket) -> Callable:
-    bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+    bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
 
     def decorator(func):
         def wrapper(*args, **kwargs):
@@ -124,9 +124,9 @@ from typing import Optional
 from cachetools import LRUCache, TTLCache
 
 from limitor.base import SyncRateLimit
+from limitor.configs import BucketConfig
 from limitor.leaky_bucket.core import (
     AsyncLeakyBucket,
-    LeakyBucketConfig,
     SyncLeakyBucket,
 )
 
@@ -138,7 +138,7 @@ def _get_user_cache(max_users, ttl):
 
 def rate_limit_per_user(capacity=10, seconds=1, max_users=1000, ttl=None, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket):
     buckets = _get_user_cache(max_users, ttl)
-    global_bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+    global_bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
 
     def decorator(func):
         # optional use_id. if not set, it will default to a regular global rate limiter
@@ -148,7 +148,7 @@ def rate_limit_per_user(capacity=10, seconds=1, max_users=1000, ttl=None, bucket
                 bucket = global_bucket
             else:
                 if user_id not in buckets:
-                    buckets[user_id] = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+                    buckets[user_id] = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
                 bucket = buckets[user_id]
             with bucket:
                 return func(user_id, *args, **kwargs)
@@ -183,10 +183,11 @@ Synchronous
 
 import time
 
-from limitor.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
+from limitor.configs import BucketConfig
+from limitor.leaky_bucket.core import SyncLeakyBucket
 
 # 4 requests per 2 seconds and a 4 second burst capacity
-config = LeakyBucketConfig(capacity=4, seconds=2)
+config = BucketConfig(capacity=4, seconds=2)
 sync_bucket = SyncLeakyBucket(config)
 for i in range(7):
     sync_bucket.acquire(1)
@@ -204,10 +205,11 @@ print(f"Current level after leaking: {sync_bucket._bucket_level}")
 
 import time
 
-from limitor.leaky_bucket import LeakyBucketConfig, SyncLeakyBucket
+from limitor.configs import BucketConfig
+from limitor.leaky_bucket.core import SyncLeakyBucket
 
 # 4 requests per 2 seconds and a 4 second burst capacity
-config = LeakyBucketConfig(capacity=4, seconds=2)
+config = BucketConfig(capacity=4, seconds=2)
 context_sync = SyncLeakyBucket(config)  # use the same config as above
 for _ in range(10):
     with context_sync as thing:
@@ -231,10 +233,11 @@ Synchronous - similar to the above examples
 
 import time
 
-from limitor.leaky_bucket import SyncTokenBucket, TokenBucketConfig
+from limitor.configs import BucketConfig
+from limitor.token_bucket.core import SyncTokenBucket
 
 # 4 requests per 2 seconds and a 4 second burst capacity
-config = TokenBucketConfig(capacity=4, seconds=2)
+config = BucketConfig(capacity=4, seconds=2)
 context_sync = SyncTokenBucket(config)  # use the same config as above
 for _ in range(10):
     with context_sync as thing:
@@ -263,14 +266,14 @@ print(f"Current level after waiting 1 second: {context_sync._bucket_level}")
 
 from datetime import datetime
 
-from limitor.generic_cell_rate import (
-    GCRAConfig,
+from limitor.configs import BucketConfig
+from limitor.generic_cell_rate.core import (
     SyncLeakyBucketGCRA,
     SyncVirtualSchedulingGCRA,
 )
 
 # 3 requests per 1.5 seconds and a 3 second burst capacity
-config = GCRAConfig(capacity=3, seconds=1.5)
+config = BucketConfig(capacity=3, seconds=1.5)
 context_sync = SyncLeakyBucketGCRA(config)  # can swap with VirtualSchedulingGCRA
 for _ in range(12):
     with context_sync as thing:
@@ -282,14 +285,14 @@ for _ in range(12):
 
 from datetime import datetime
 
-from limitor.generic_cell_rate import (
-    GCRAConfig,
+from limitor.configs import BucketConfig
+from limitor.generic_cell_rate.core import (
     SyncLeakyBucketGCRA,
     SyncVirtualSchedulingGCRA,
 )
 
 # 10 requests per 5 seconds and a 10 second burst capacity
-config = GCRAConfig(capacity=10, seconds=5)
+config = BucketConfig(capacity=10, seconds=5)
 sync_bucket = SyncLeakyBucketGCRA(config)  # can swap with SyncVirtualSchedulingGCRA
 for i in range(12):
     if i % 2 == 0:
@@ -307,11 +310,12 @@ for i in range(12):
 import asyncio
 import time
 
-from limitor.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
+from limitor.configs import BucketConfig
+from limitor.leaky_bucket.core import AsyncLeakyBucket
 
 
 async def main():
-    bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+    bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
     for i in range(10):
         await bucket.acquire()
         print(f"Request {i + 1} allowed at {time.strftime('%X')}")
@@ -326,7 +330,8 @@ uneven requests
 import asyncio
 import time
 
-from limitor.leaky_bucket import AsyncLeakyBucket, LeakynBucketConfig
+from limitor.configs import BucketConfig
+from limitor.leaky_bucket.core import AsyncLeakyBucket
 
 
 async def request(bucket, amount, idx):
@@ -335,7 +340,7 @@ async def request(bucket, amount, idx):
 
 
 async def main():
-    bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=3, seconds=3), max_concurrent=5)
+    bucket = AsyncLeakyBucket(BucketConfig(capacity=3, seconds=3), max_concurrent=5)
     amounts = [1, 3, 2, 1, 2, 3, 1]
     tasks = [
         asyncio.create_task(request(bucket, amt, i))
@@ -356,7 +361,8 @@ import time
 
 import httpx
 
-from limitor.extra.leaky_bucket.core import AsyncLeakyBucket, LeakyBucketConfig
+from limitor.configs import BucketConfig
+from limitor.extra.leaky_bucket.core import AsyncLeakyBucket
 
 
 async def fetch_url(bucket, client, url, idx, timeout):
@@ -372,7 +378,7 @@ async def fetch_url(bucket, client, url, idx, timeout):
 
 
 async def main():
-    bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+    bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
     urls = [
         "https://example.com",
         "https://httpbin.org/get",
