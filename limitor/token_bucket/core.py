@@ -5,55 +5,24 @@ from __future__ import annotations
 import asyncio
 import time
 from contextlib import nullcontext
-from dataclasses import dataclass
 from types import TracebackType
-from typing import NamedTuple
 
-
-@dataclass
-class TokenBucketConfig:
-    """Configuration for the Token Bucket Rate Limiter"""
-
-    capacity: float = 10
-    """Maximum number of tokens the bucket can hold i.e. number of requests that can be processed at once"""
-
-    seconds: float = 1
-    """Up to `capacity` acquisitions are allowed within this time period in a burst"""
-
-    def __post_init__(self) -> None:
-        """Validate the configuration parameters"""
-        fill_rate_per_sec = self.capacity / self.seconds
-        if fill_rate_per_sec <= 0:
-            raise ValueError("fill_rate_per_sec must be positive and non-zero")
-
-        if self.capacity < 1:
-            raise ValueError("capacity must be at least 1")
-
-
-# TODO: pull this out into a config module (same as the leaky bucket file)
-class Capacity(NamedTuple):
-    """Information about the current capacity of the leaky bucket"""
-
-    has_capacity: bool
-    """Indicates if the bucket has enough capacity to accommodate the requested amount"""
-
-    needed_capacity: float
-    """Amount of capacity needed to accommodate the request, if any"""
+from limitor.configs import BucketConfig, Capacity
 
 
 class SyncTokenBucket:
     """Token Bucket Rate Limiter
 
     Args:
-        token_bucket_config: Configuration for the token bucket with the max capacity and time period in seconds
+        bucket_config: Configuration for the token bucket with the max capacity and time period in seconds
 
     Note:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, token_bucket_config: TokenBucketConfig | None):
+    def __init__(self, bucket_config: BucketConfig | None):
         # import config and set attributes
-        config = token_bucket_config or TokenBucketConfig()
+        config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
 
@@ -128,15 +97,15 @@ class AsyncTokenBucket:
     """Asynchronous Leaky Bucket Rate Limiter
 
     Args:
-        token_bucket_config: Configuration for the token bucket with the max capacity and time period in seconds
+        bucket_config: Configuration for the token bucket with the max capacity and time period in seconds
         max_concurrent: Maximum number of concurrent requests allowed to acquire capacity
 
     Note:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, token_bucket_config: TokenBucketConfig | None = None, max_concurrent: int | None = None):
-        config = token_bucket_config or TokenBucketConfig()
+    def __init__(self, bucket_config: BucketConfig | None = None, max_concurrent: int | None = None):
+        config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
 

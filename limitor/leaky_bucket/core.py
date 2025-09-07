@@ -5,54 +5,24 @@ from __future__ import annotations
 import asyncio
 import time
 from contextlib import nullcontext
-from dataclasses import dataclass
 from types import TracebackType
-from typing import NamedTuple
 
-
-@dataclass
-class LeakyBucketConfig:
-    """Configuration for the Leaky Bucket Rate Limiter"""
-
-    capacity: float = 10
-    """Maximum number of items the bucket can hold i.e. number of requests that can be processed at once"""
-
-    seconds: float = 1
-    """Up to `capacity` acquisitions are allowed within this time period in a burst"""
-
-    def __post_init__(self) -> None:
-        """Validate the configuration parameters"""
-        leak_rate_per_sec = self.capacity / self.seconds
-        if leak_rate_per_sec <= 0:
-            raise ValueError("leak_rate_per_sec must be positive and non-zero")
-
-        if self.capacity < 1:
-            raise ValueError("capacity must be at least 1")
-
-
-class Capacity(NamedTuple):
-    """Information about the current capacity of the leaky bucket"""
-
-    has_capacity: bool
-    """Indicates if the bucket has enough capacity to accommodate the requested amount"""
-
-    needed_capacity: float
-    """Amount of capacity needed to accommodate the request, if any"""
+from limitor.configs import BucketConfig, Capacity
 
 
 class SyncLeakyBucket:
     """Leaky Bucket Rate Limiter
 
     Args:
-        leaky_bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
+        bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
 
     Note:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, leaky_bucket_config: LeakyBucketConfig | None):
+    def __init__(self, bucket_config: BucketConfig | None):
         # import config and set attributes
-        config = leaky_bucket_config or LeakyBucketConfig()
+        config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
 
@@ -126,15 +96,15 @@ class AsyncLeakyBucket:
     """Asynchronous Leaky Bucket Rate Limiter
 
     Args:
-        leaky_bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
+        bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
         max_concurrent: Maximum number of concurrent requests allowed to acquire capacity
 
     Note:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, leaky_bucket_config: LeakyBucketConfig | None = None, max_concurrent: int | None = None):
-        config = leaky_bucket_config or LeakyBucketConfig()
+    def __init__(self, bucket_config: BucketConfig | None = None, max_concurrent: int | None = None):
+        config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
 
