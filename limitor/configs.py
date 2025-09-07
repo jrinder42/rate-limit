@@ -1,6 +1,7 @@
 """Configuration for Rate Limiter implementations"""
 
 from dataclasses import dataclass
+from typing import NamedTuple
 
 
 @dataclass
@@ -21,3 +22,13 @@ class BucketConfig:
 
         if self.capacity < 1:
             raise ValueError("capacity must be at least 1")
+
+
+class Capacity(NamedTuple):
+    """Information about the current capacity of the bucket"""
+
+    has_capacity: bool
+    """Indicates if the bucket has enough capacity to accommodate the requested amount"""
+
+    needed_capacity: float
+    """Amount of capacity needed to accommodate the request, if any"""
