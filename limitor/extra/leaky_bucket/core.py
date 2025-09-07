@@ -5,19 +5,9 @@ from __future__ import annotations
 import asyncio
 import time
 from types import TracebackType
-from typing import Any, NamedTuple
+from typing import Any
 
-from limitor.configs import BucketConfig
-
-
-class Capacity(NamedTuple):
-    """Information about the current capacity of the leaky bucket"""
-
-    has_capacity: bool
-    """Indicates if the bucket has enough capacity to accommodate the requested amount"""
-
-    needed_capacity: float
-    """Amount of capacity needed to accommodate the request, if any"""
+from limitor.configs import BucketConfig, Capacity
 
 
 class AsyncLeakyBucket:
