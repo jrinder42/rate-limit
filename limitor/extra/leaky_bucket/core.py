@@ -4,22 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import dataclass
 from types import TracebackType
 from typing import Any, NamedTuple
 
-
-@dataclass
-class LeakyBucketConfig:
-    capacity: float = 10
-    seconds: float = 1.0
-
-    def __post_init__(self) -> None:
-        leak_rate_per_sec = self.capacity / self.seconds
-        if leak_rate_per_sec <= 0:
-            raise ValueError("leak_rate_per_sec must be positive and non-zero")
-        if self.capacity < 1:
-            raise ValueError("capacity must be at least 1")
+from limitor.configs import BucketConfig
 
 
 class Capacity(NamedTuple):
@@ -36,14 +24,14 @@ class AsyncLeakyBucket:
     """Async Leaky Bucket Rate Limiter - Queue-based implementation
 
     Args:
-        leaky_bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
+        bucket_config: Configuration for the leaky bucket with the max capacity and time period in seconds
 
     Note:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, leaky_bucket_config: LeakyBucketConfig | None = None):
-        config = leaky_bucket_config or LeakyBucketConfig()
+    def __init__(self, bucket_config: BucketConfig | None = None):
+        config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
 
@@ -182,7 +170,7 @@ if __name__ == "__main__":
             print(f"Request {idx} (amount={amount}, timeout={timeout}) timed out: {e}")
 
     async def main() -> None:
-        bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+        bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
         requests = [
             (2, 1, 1),  # should succeed (bucket full)
             (2, 2, 1),  # should timeout (needs refill)
@@ -200,7 +188,7 @@ if __name__ == "__main__":
     print("Even steven queue example (no context manager)")
 
     async def main() -> None:
-        bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+        bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
         requests = [
             (1, 1, 1),  # should succeed (bucket full)
             (1, 2, 1),  # should timeout (needs refill)
@@ -224,7 +212,7 @@ if __name__ == "__main__":
             # await asyncio.sleep(0.2)  # Simulate work
 
     async def main() -> None:
-        bucket = AsyncLeakyBucket(LeakyBucketConfig(capacity=2, seconds=2))
+        bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
         tasks = [asyncio.create_task(request_cm(bucket, i)) for i in range(1, 7)]
         await asyncio.gather(*tasks)
 
