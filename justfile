@@ -78,7 +78,7 @@ format:
 
 # type checking
 type-check:
-    uv run mypy --strict $all_py_files  # add --strict after mypy
+    uv run mypy --strict $all_py_files
 
 # testing
 # handling errors
