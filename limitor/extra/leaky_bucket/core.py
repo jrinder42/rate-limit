@@ -6,7 +6,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 from types import TracebackType
-from typing import NamedTuple, Any
+from typing import Any, NamedTuple
 
 
 @dataclass
