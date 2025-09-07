@@ -54,6 +54,10 @@ jobs:
         run: |
           just lint
 
+      - name: Run type checking
+        run: |
+          just type-check
+
       - name: Run tests
         run: |
           just test
