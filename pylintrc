@@ -4,6 +4,9 @@ ignore-paths=docs
 [FORMAT]
 max-line-length = 120
 
+[DESIGN]
+max-attributes=10
+
 [MESSAGES CONTROL]
 disable=
     broad-exception-raised,
