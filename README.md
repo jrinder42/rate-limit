@@ -88,6 +88,7 @@ from limitor.base import SyncRateLimit
 from limitor.configs import BucketConfig
 from limitor.leaky_bucket.core import SyncLeakyBucket
 
+
 def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket) -> Callable:
     bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
 

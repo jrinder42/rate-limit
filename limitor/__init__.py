@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from limitor.base import AsyncRateLimit, SyncRateLimit
+from limitor.configs import BucketConfig
 from limitor.leaky_bucket.core import (
     AsyncLeakyBucket,
-    LeakyBucketConfig,
     SyncLeakyBucket,
 )
 
@@ -30,7 +30,7 @@ def rate_limit(
     Returns:
         A decorator that applies the rate limit to the function
     """
-    bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds))
+    bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -59,7 +59,7 @@ def async_rate_limit(
     Returns:
         A decorator that applies the rate limit to the function
     """
-    bucket = bucket_cls(LeakyBucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent)
+    bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent)
 
     def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
