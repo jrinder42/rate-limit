@@ -61,3 +61,17 @@ jobs:
       - name: Run tests
         run: |
           just test
+
+      - name: Run code coverage for Codecov
+        run: |
+          uv run pytest --cov --cov-branch --cov-report=xml
+        if: |
+          matrix.os == 'ubuntu-latest'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: |
+          matrix.os == 'ubuntu-latest'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
