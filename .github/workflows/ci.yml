@@ -64,7 +64,7 @@ jobs:
 
       - name: Run code coverage for Codecov
         run: |
-          pytest --cov --cov-branch --cov-report=xml
+          uv run pytest --cov --cov-branch --cov-report=xml
         if: |
           matrix.os == 'ubuntu-latest'
 
