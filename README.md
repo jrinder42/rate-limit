@@ -15,7 +15,7 @@
 [build-url]: https://github.com/jrinder42/rate-limit/actions/workflows/ci.yml
 [doc-image]: https://img.shields.io/badge/docs-link-blue
 [doc-url]: https://jrinder42.github.io/rate-limit/
-[coverage-image]: https://codecov.io/gh/jrinder42/rate-limit/branch/main/graph/badge.svg
+[coverage-image]: https://codecov.io/gh/jrinder42/rate-limit/graph/badge.svg
 [coverage-url]: https://codecov.io/gh/jrinder42/rate-limit
 [version-image]: https://img.shields.io/pypi/pyversions/limitor
 
