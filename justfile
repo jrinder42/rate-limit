@@ -99,7 +99,7 @@ test:
     @just unsafe-test || @just handle-error
 
 # run everything except for code coverage
-check: format lint type-check test
+all: format lint type-check test
     @echo "All checks passed!"
 
 # code coverage, can also call package_name with {{package_name}}
