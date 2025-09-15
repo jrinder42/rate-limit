@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Awaitable, Callable, ParamSpec, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import ParamSpec, TypeVar
 
 from limitor.base import AsyncRateLimit, SyncRateLimit
 from limitor.configs import BucketConfig
@@ -69,36 +70,3 @@ def async_rate_limit(
         return wrapper
 
     return decorator
-
-
-# pylint: disable=all
-# ruff: noqa
-if __name__ == "__main__":
-    import asyncio
-    import time
-
-    @rate_limit(capacity=2, seconds=2)
-    def something() -> None:
-        print(f"This is a rate-limited function: {time.strftime('%X')}")
-
-    for _ in range(10):
-        try:
-            something()
-        except Exception as e:
-            print(f"Rate limit exceeded: {e}")
-
-    print("-----")
-    print("async")
-
-    @async_rate_limit(capacity=2, seconds=2)
-    async def something_async() -> None:
-        print(f"This is a rate-limited function: {time.strftime('%X')}")
-
-    async def main() -> None:
-        for _ in range(10):
-            try:
-                await something_async()
-            except Exception as e:
-                print(f"Rate limit exceeded: {e}")
-
-    asyncio.run(main())
