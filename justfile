@@ -1,7 +1,7 @@
 set dotenv-load
 
 # CHANGE HERE
-export package_name := 'rate_limit/'
+export package_name := 'limitor/'
 export test_folder := 'tests/'
 export sql_folder := 'sql/'
 
@@ -78,7 +78,7 @@ format:
 
 # type checking
 type-check:
-    uv run mypy --strict $all_py_files
+    uv run mypy `git ls-files --exclude-standard {{package_name}}`
 
 # testing
 # handling errors
