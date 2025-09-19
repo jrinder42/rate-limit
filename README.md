@@ -51,7 +51,7 @@ brew install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # python version are automatically downloaded as needed or: uv python install 3.12
-uv venv financials --python 3.12
+uv venv rate --python 3.12
 
 
 # to activate the virtual environment

@@ -63,7 +63,7 @@ class AsyncLeakyBucket:
             try:
                 await self._timeout_acquire(amount, timeout)
                 future.set_result(True)  # note: this can be set to anything
-            except Exception as error:
+            except Exception as error:  # pylint: disable=broad-exception-caught
                 future.set_exception(error)
 
             self._queue.task_done()
@@ -144,66 +144,3 @@ class AsyncLeakyBucket:
         """Exit the context manager, releasing any resources if necessary"""
         await self.shutdown()
         return None
-
-
-# --- Examples ---
-# ruff: noqa
-# pylint: disable=all
-if __name__ == "__main__":
-    print("Predictable queue example (no context manager)")
-
-    async def request_with_timeout(bucket: AsyncLeakyBucket, amount: float, idx: int, timeout: float) -> None:
-        try:
-            await bucket.acquire(amount, timeout=timeout)
-            print(f"Request {idx} (amount={amount}, timeout={timeout}) allowed at {time.strftime('%X')}")
-        except TimeoutError as e:
-            print(f"Request {idx} (amount={amount}, timeout={timeout}) timed out: {e}")
-
-    async def main() -> None:
-        bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
-        requests = [
-            (2, 1, 1),  # should succeed (bucket full)
-            (2, 2, 1),  # should timeout (needs refill)
-            (1, 3, 1.5),  # should succeed (after partial refill)
-            (2, 4, 2),  # should succeed (enough time to refill)
-            (2, 5, 0.5),  # should timeout (not enough time)
-            (1, 6, 2),  # should succeed (after refill)
-        ]
-        for amt, idx, timeout in requests:
-            await request_with_timeout(bucket, amt, idx, timeout)
-        await bucket.shutdown()
-
-    asyncio.run(main())
-
-    print("Even steven queue example (no context manager)")
-
-    async def main() -> None:
-        bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
-        requests = [
-            (1, 1, 1),  # should succeed (bucket full)
-            (1, 2, 1),  # should timeout (needs refill)
-            (1, 3, 1),  # should succeed (after partial refill)
-            (1, 4, 1),  # should succeed (enough time to refill)
-            (1, 5, 1),  # should timeout (not enough time)
-            (1, 6, 1),  # should succeed (after refill)
-        ]
-        for amt, idx, timeout in requests:
-            await request_with_timeout(bucket, amt, idx, timeout)
-        await bucket.shutdown()
-
-    asyncio.run(main())
-
-    # --- New Example: Using async context manager with concurrent requests ---
-    print("Context manager example (concurrent requests, one per context)")
-
-    async def request_cm(bucket: AsyncLeakyBucket, idx: int) -> None:
-        async with bucket:
-            print(f"[Context Manager] Request {idx} allowed at {time.strftime('%X')}")
-            # await asyncio.sleep(0.2)  # Simulate work
-
-    async def main() -> None:
-        bucket = AsyncLeakyBucket(BucketConfig(capacity=2, seconds=2))
-        tasks = [asyncio.create_task(request_cm(bucket, i)) for i in range(1, 7)]
-        await asyncio.gather(*tasks)
-
-    asyncio.run(main())

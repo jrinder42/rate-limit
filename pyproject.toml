@@ -89,6 +89,8 @@ ignore = [
     "D415",
     # Missing docstring in __init__; technically, this is also against PEP 257
     "D107",
+    # Missing docstring in public module
+    "D100",
 ]
 exclude = [
     "docs/*",
@@ -111,3 +113,7 @@ exclude = [
     "docs/*",
     "tests/conftest.py"
 ]
+
+[tool.mypy]
+strict = true
+exclude = 'examples/'
