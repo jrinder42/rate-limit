@@ -1,5 +1,26 @@
 # Rate Limiting Algorithms
 
+[![PyPI Version][pypi-image]][pypi-url]
+[![Build Status][build-image]][build-url]
+[![Documentation Status][doc-image]][doc-url]
+[![Code Coverage][coverage-image]][coverage-url]
+[![PyPI - Python Version][version-image]][pypi-url]
+
+
+<!-- Badges -->
+
+[pypi-image]: https://img.shields.io/pypi/v/limitor
+[pypi-url]: https://pypi.org/project/limitor
+[build-image]: https://github.com/jrinder42/rate-limit/actions/workflows/ci.yml/badge.svg
+[build-url]: https://github.com/jrinder42/rate-limit/actions/workflows/ci.yml
+[doc-image]: https://img.shields.io/badge/docs-link-blue
+[doc-url]: https://jrinder42.github.io/rate-limit/
+[coverage-image]: https://codecov.io/gh/jrinder42/rate-limit/graph/badge.svg
+[coverage-url]: https://codecov.io/gh/jrinder42/rate-limit
+[version-image]: https://img.shields.io/pypi/pyversions/limitor
+
+This project adheres to [Semantic Versioning](https://semver.org/)
+
 > [!IMPORTANT]
 > This is just for my own knowledge. Please do not use this if you stumble upon it.
 
@@ -8,9 +29,9 @@
 | Algorithms                  | Sync | Async |
 |:----------------------------|:----:|:-----:|
 | Leaky Bucket                | Yes  |  Yes  |
-| Token Bucket                | Yes  |  TBD  |
-| Generic Cell Rate Algorithm | Yes  |  TBD  |
-| LLM-Token                   | TBD  |  TBD  |
+| Token Bucket                | Yes  |  Yes  |
+| Generic Cell Rate Algorithm | Yes  |  Yes  |
+| LLM-Token                   | Yes  |  Yes  |
 
 > [!NOTE]  
 > Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities. With asyncio, we use non-blocking cooperative multitasking, not preemptive multi-threading

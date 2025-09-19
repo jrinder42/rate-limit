@@ -3,7 +3,8 @@ name: Continuous Integration
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-    #branches: [main]
+  push:
+    branches: [main]
 
   workflow_dispatch:
 
@@ -61,3 +62,17 @@ jobs:
       - name: Run tests
         run: |
           just test
+
+      - name: Run code coverage for Codecov
+        run: |
+          uv run pytest --cov --cov-branch --cov-report=xml
+        if: |
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: |
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
