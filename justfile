@@ -52,8 +52,8 @@ flake8:
 
 # ruff lint
 ruff-lint:
-    uv run ruff check $all_py_files
-
+    #uv run ruff check $all_py_files
+    @just ruff-fix FIX="false"
 # linting
 lint:
     @echo "Linting files..."
@@ -63,12 +63,17 @@ lint:
     @just flake8
     @just ruff-lint
 
+
+[private]
+ruff-fix FIX="true":
+	@scripts/ruff_check.sh {{FIX}}
+
 [private]
 format-server:
     uv run black --quiet $all_py_files
     uv run isort --profile black $all_files
     ##uv run sqlfluff fix $sql_folder
-    uv run ruff check --fix $all_py_files
+    just ruff-fix
     #uv run ruff format
 
 # formatting

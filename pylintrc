@@ -1,5 +1,5 @@
 [MASTER]
-ignore-paths=docs
+ignore-paths=docs, examples
 
 [FORMAT]
 max-line-length = 120

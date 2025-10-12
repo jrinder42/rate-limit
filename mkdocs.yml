@@ -2,6 +2,7 @@ site_name: My Docs
 
 nav:
   - Home: index.md
+  - Generating Docs: generating_docs.md
 
 plugins:
   - search

@@ -75,7 +75,7 @@ target-version = ['py312']
 # ruff
 [tool.ruff]
 # In addition to the standard set of exclusions, omit all tests, plus a specific file.
-extend-exclude = ["docs/*"]
+extend-exclude = ["docs/*", "examples/*"]
 respect-gitignore = true
 
 [tool.ruff.lint]
@@ -117,3 +117,4 @@ exclude = [
 [tool.mypy]
 strict = true
 exclude = 'examples/'
+exclude_gitignore = true
