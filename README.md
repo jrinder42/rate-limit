@@ -82,14 +82,6 @@ or
 uv lock --upgrade-package requests
 ```
 
-## Shell Scripts
-
-Make executable
-
-```shell
-chmod +x scripts/ruff_fix.sh
-```
-
 ## Usage
 
 > [!IMPORTANT]
