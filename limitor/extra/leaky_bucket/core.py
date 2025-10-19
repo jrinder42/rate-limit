@@ -82,7 +82,7 @@ class AsyncLeakyBucket:
                 is updated correctly and that we don't have multiple requests trying to update the bucket level
                 at the same time, which could lead to an inconsistent state i.e. a race condition.
         """
-        capacity_info = self.capacity_info()
+        capacity_info = self.capacity_info(amount=amount)
         while not capacity_info.has_capacity:
             needed = capacity_info.needed_capacity
             # amount we need to wait to leak (either part or the entire capacity)
@@ -91,7 +91,7 @@ class AsyncLeakyBucket:
             if wait_time > 0:
                 await asyncio.sleep(wait_time)
 
-            capacity_info = self.capacity_info()
+            capacity_info = self.capacity_info(amount=amount)
 
         self._bucket_level += amount
 

@@ -118,3 +118,18 @@ LLM Token Rate Limiting
           - `AsyncTokenBucket`
           - `AsyncVirtualSchedulingGCRA`
           - `AsyncLeakyBucketGCRA`
+
+## References
+
+- Linear Programming
+    - [https://news.ycombinator.com/item?id=44393998](https://news.ycombinator.com/item?id=44393998)
+      - [https://vivekn.dev/blog/rate-limit-diophantine](https://vivekn.dev/blog/rate-limit-diophantine)
+- Async Rate Limiting
+    - [https://asynciolimiter.readthedocs.io/en/latest/](https://asynciolimiter.readthedocs.io/en/latest/)
+- Algorithms
+    - [Leaky Bucket](https://en.wikipedia.org/wiki/Leaky_bucket)
+        - Benefits: Smooth, predictable traffic at a constant rate, discarding the overflow
+    - [Token Bucket](https://en.wikipedia.org/wiki/Token_bucket)
+        - Benefits: Can be bursty with burst up to a limit, then at an average rate
+    - [Generic Cell Rate Algorithm](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
+        - Benefits: More precise control over traffic shaping and policing
