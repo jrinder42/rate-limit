@@ -69,7 +69,7 @@ class SyncLeakyBucket:
         if amount > self.capacity:
             raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
 
-        capacity_info = self.capacity_info()
+        capacity_info = self.capacity_info(amount=amount)
         while not capacity_info.has_capacity:
             needed = capacity_info.needed_capacity
             # amount we need to wait to leak (either part or the entire capacity)
@@ -78,7 +78,7 @@ class SyncLeakyBucket:
             if wait_time > 0:
                 time.sleep(wait_time)
 
-            capacity_info = self.capacity_info()
+            capacity_info = self.capacity_info(amount=amount)
 
         self._bucket_level += amount
 
@@ -150,7 +150,7 @@ class AsyncLeakyBucket:
                 at the same time, which could lead to an inconsistent state i.e. a race condition.
         """
         async with self._lock:  # ensures atomicity given we can have multiple concurrent requests
-            capacity_info = self.capacity_info()
+            capacity_info = self.capacity_info(amount=amount)
             while not capacity_info.has_capacity:
                 needed = capacity_info.needed_capacity
                 # amount we need to wait to leak (either part or the entire capacity)
@@ -159,7 +159,7 @@ class AsyncLeakyBucket:
                 if wait_time > 0:
                     await asyncio.sleep(wait_time)
 
-                capacity_info = self.capacity_info()
+                capacity_info = self.capacity_info(amount=amount)
 
             self._bucket_level += amount
 
