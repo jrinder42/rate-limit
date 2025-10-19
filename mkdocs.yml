@@ -1,4 +1,4 @@
-site_name: My Docs
+site_name: Limitor
 
 nav:
   - Home: index.md
@@ -20,7 +20,29 @@ theme:
   name: material
   features:
     - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
   highlightjs: true
   hljs_languages:
       - yaml
       - python
+  icon:
+    annotation: material/plus-circle
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
