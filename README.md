@@ -21,8 +21,8 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/)
 
-> [!IMPORTANT]
-> This is just for my own knowledge. Please do not use this if you stumble upon it.
+> [!WARNING]
+> Right now, anything with amount != 1 does not work
 
 ## Algorithms
 
@@ -35,9 +35,6 @@ This project adheres to [Semantic Versioning](https://semver.org/)
 
 > [!NOTE]  
 > Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities. With asyncio, we use non-blocking cooperative multitasking, not preemptive multi-threading
-
-> [!NOTE]
-> All algorithms default to traffic shaping patterns as opposed to traffic policing. This means that transmitted pieces of data are not dropped and we wait until the request can be completed barring a timeout.
 
 ## Development
 
