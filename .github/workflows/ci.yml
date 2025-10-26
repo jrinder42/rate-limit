@@ -45,7 +45,7 @@ jobs:
 
       - name: Install deps
         run: |
-          uv sync --locked
+          uv sync
 
       - name: Run code formatting
         run: |
