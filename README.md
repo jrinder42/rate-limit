@@ -21,9 +21,6 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/)
 
-> [!WARNING]
-> Right now, anything with amount != 1 does not work
-
 ## Algorithms
 
 | Algorithms                  | Sync | Async |
