@@ -66,7 +66,7 @@ jobs:
       - name: Run code coverage for Codecov
         run: |
         #  uv run pytest --cov --cov-branch --cov-report=xml
-            just coverage
+          just coverage
         #if: |
           #github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
         if: |
