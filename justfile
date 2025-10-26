@@ -95,5 +95,6 @@ coverage:
     coverage erase
     coverage run --source $package_name -m pytest -Wignore  $test_files
     coverage report -m
+    coverage xml
 
 # [optional] utility functions
