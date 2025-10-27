@@ -8,7 +8,9 @@ dynamic = ["version"]
 description = "Rate limiting package"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pytest-asyncio>=1.2.0",
+]
 authors = [
     {name = "Jordan Rinder", email = "jordan.rinder@gmail.com"}
 ]
@@ -35,7 +37,7 @@ dev = [
 ]
 testing = [
     "pytest>=8.2",
-    "pytest-cov"
+    "coverage",
 ]
 ci = [
     "black",

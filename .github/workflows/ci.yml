@@ -45,7 +45,7 @@ jobs:
 
       - name: Install deps
         run: |
-          uv sync --locked
+          uv sync
 
       - name: Run code formatting
         run: |
@@ -65,14 +65,14 @@ jobs:
 
       - name: Run code coverage for Codecov
         run: |
-          uv run pytest --cov --cov-branch --cov-report=xml
+          just coverage
         if: |
-          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         if: |
-          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
