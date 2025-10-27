@@ -37,7 +37,6 @@ dev = [
 ]
 testing = [
     "pytest>=8.2",
-    "pytest-cov",
     "coverage",
 ]
 ci = [
