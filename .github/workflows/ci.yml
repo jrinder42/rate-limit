@@ -64,21 +64,15 @@ jobs:
           just test
 
       - name: Run code coverage for Codecov
-        #run: |
-        #  uv run pytest --cov --cov-branch --cov-report=xml
         run: |
           just coverage
-        #if: |
-          #github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
         if: |
-            matrix.os == 'ubuntu-latest'
+          github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
-        #if: |
-        #  github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
         if: |
-            matrix.os == 'ubuntu-latest'
+          github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
