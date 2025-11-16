@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Any
 
 import pytest
 
@@ -21,7 +22,7 @@ def sleep_calls(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     real_sleep = time.sleep
     call_list = []
 
-    def spy_sleep(delay):
+    def spy_sleep(delay: float) -> None:
         call_list.append(delay)
         real_sleep(delay)
 
@@ -47,7 +48,7 @@ def asyncio_sleep_calls(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     real_sleep = asyncio.sleep
     call_list = []
 
-    async def spy_asyncio_sleep(delay, *args, **kwargs):
+    async def spy_asyncio_sleep(delay: float, *args: list[Any], **kwargs: dict[Any, Any]) -> None:
         call_list.append(delay)
         await real_sleep(delay, *args, **kwargs)
 
