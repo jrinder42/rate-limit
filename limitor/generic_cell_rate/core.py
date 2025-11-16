@@ -394,7 +394,7 @@ class AsyncLeakyBucketGCRA:
         return None
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     """
     The Generic Cell Rate Algorithm (GCRA) offers several benefits
     over other rate limiting algorithms like the classic
