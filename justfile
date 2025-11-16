@@ -79,7 +79,7 @@ handle-error:
 # -Wignore supresses warnings
 # run tests without error handling
 unsafe-test:
-   @uv run pytest -Wignore $test_files
+    @uv run pytest -Wignore $test_files
 
 # run tests
 test:
