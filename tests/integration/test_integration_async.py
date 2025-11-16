@@ -60,9 +60,7 @@ class TestTimeoutValidation:
     """Tests for the timeout behavior of async bucket implementations"""
 
     @pytest.mark.asyncio
-    async def test_async_timeout_error(
-        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_async_timeout_error(self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
         """Test that acquire raises TimeoutError when timeout is exceeded"""
         # fill the bucket so the next acquire will need to wait
         await bucket_cls.acquire(1)
@@ -76,9 +74,7 @@ class TestTimeoutValidation:
         assert len(asyncio_sleep_calls) == 1
 
     @pytest.mark.asyncio
-    async def test_async_timeout_good(
-        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_async_timeout_good(self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
         """Test that acquire succeeds when timeout is sufficient"""
         # fill the bucket so the next acquire will need to wait
         await bucket_cls.acquire(1)
@@ -106,9 +102,7 @@ class TestAmountValidation:
             await bucket_cls.acquire(-1)
 
     @pytest.mark.asyncio
-    async def test_acquire_amount_single(
-        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_acquire_amount_single(self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
         """Test if a single request performs correctly"""
         await bucket_cls.acquire(1)
 
@@ -116,7 +110,7 @@ class TestAmountValidation:
 
     @pytest.mark.asyncio
     async def test_acquire_amount_multiple_same(
-        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
+        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]
     ) -> None:
         """Test if multiple requests of the same amount perform correctly"""
         for _ in range(6):
@@ -127,7 +121,7 @@ class TestAmountValidation:
 
     @pytest.mark.asyncio
     async def test_acquire_variable_amount_multiple(
-        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
+        self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]
     ) -> None:
         """Test if multiple requests of variable amounts perform correctly"""
         value_list = []
@@ -155,9 +149,7 @@ class TestAmountValidation:
     "bucket_cls", [AsyncLeakyBucket, AsyncTokenBucket, AsyncLeakyBucketGCRA, AsyncVirtualSchedulingGCRA]
 )
 @pytest.mark.asyncio
-async def test_decorator_calls_acquire(
-    bucket_cls: type[AsyncRateLimit], asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_decorator_calls_acquire(bucket_cls: type[AsyncRateLimit], asyncio_sleep_calls: list[float]) -> None:
     """Test that the async_rate_limit decorator calls acquire on the bucket"""
 
     @async_rate_limit(capacity=2, seconds=0.2, bucket_cls=bucket_cls)
@@ -175,9 +167,7 @@ async def test_decorator_calls_acquire(
 
 # context manager tests
 @pytest.mark.asyncio
-async def test_context_manager_calls_acquire(
-    bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_context_manager_calls_acquire(bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
     """Context manager should call `acquire` on enter and return self"""
     value_list = []
     for value in range(6):

@@ -67,17 +67,13 @@ class TestAmountValidation:
         with pytest.raises(ValueError, match=r"Cannot acquire less than 0 amount with amount: -1"):
             bucket_cls.acquire(-1)
 
-    def test_acquire_amount_single(
-        self, bucket_cls: SyncRateLimit, sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_acquire_amount_single(self, bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
         """Test if a single request performs correctly"""
         bucket_cls.acquire(1)
 
         assert len(sleep_calls) == 0  # first acquire should not sleep
 
-    def test_acquire_amount_multiple_same(
-        self, bucket_cls: SyncRateLimit, sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_acquire_amount_multiple_same(self, bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
         """Test multiple requests of the same amount perform correctly"""
         for _ in range(6):
             bucket_cls.acquire(1)
@@ -85,9 +81,7 @@ class TestAmountValidation:
         assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in sleep_calls)
         assert len(sleep_calls) == 4
 
-    def test_acquire_variable_amount_multiple(
-        self, bucket_cls: SyncRateLimit, sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_acquire_variable_amount_multiple(self, bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
         """Test multiple requests of variable amounts perform correctly"""
         value_list = []
         for value in range(6):
@@ -109,9 +103,7 @@ class TestAmountValidation:
 @pytest.mark.parametrize(
     "bucket_cls", [SyncLeakyBucket, SyncTokenBucket, SyncLeakyBucketGCRA, SyncVirtualSchedulingGCRA]
 )
-def test_decorator_calls_acquire(
-    bucket_cls: type[SyncRateLimit], sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_decorator_calls_acquire(bucket_cls: type[SyncRateLimit], sleep_calls: list[float]) -> None:
     """Ensure the rate_limit decorator calls acquire on the bucket"""
 
     @rate_limit(capacity=2, seconds=0.2, bucket_cls=bucket_cls)
@@ -128,9 +120,7 @@ def test_decorator_calls_acquire(
 
 
 # context manager tests
-def test_context_manager_calls_acquire(
-    bucket_cls: SyncRateLimit, sleep_calls: list[float], monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_context_manager_calls_acquire(bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
     """Ensure the context manager calls acquire on the bucket"""
     value_list = []
     for value in range(6):
