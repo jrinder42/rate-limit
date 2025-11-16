@@ -93,7 +93,7 @@ all: format lint type-check test
 # code coverage, can also call package_name with {{package_name}}
 coverage:
     uv run coverage erase
-    uv run coverage run --source $package_name -m pytest -Wignore  $test_files
+    uv run coverage run --source $package_name -m pytest -Wignore $test_files
     uv run coverage report -m
     uv run coverage xml
 
