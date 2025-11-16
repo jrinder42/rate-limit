@@ -8,6 +8,7 @@ from contextlib import nullcontext
 from types import TracebackType
 
 from limitor.configs import BucketConfig, Capacity
+from limitor.utils import validate_amount
 
 
 class SyncTokenBucket:
@@ -61,14 +62,10 @@ class SyncTokenBucket:
         Args:
             amount: The amount of capacity to acquire, defaults to 1
 
-        Raises:
-            ValueError: If the requested amount exceeds the bucket's capacity
-
         Notes:
             The while loop is just to make sure nothing funny happens while waiting
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         capacity_info = self.capacity_info(amount=amount)
         while not capacity_info.has_capacity:
@@ -186,11 +183,9 @@ class AsyncTokenBucket:
             timeout: Optional timeout in seconds for the acquire operation
 
         Raises:
-            ValueError: If the requested amount exceeds the bucket's capacity
             TimeoutError: If the acquire operation times out after the specified timeout period
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         if timeout is not None:
             try:
