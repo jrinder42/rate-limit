@@ -37,6 +37,7 @@ dev = [
 ]
 testing = [
     "pytest>=8.2",
+    "pytest-asyncio",
     "coverage",
 ]
 ci = [
@@ -118,5 +119,7 @@ exclude = [
 
 [tool.mypy]
 strict = true
-exclude = 'examples/'
+exclude = [
+    "examples/",
+]
 exclude_gitignore = true
