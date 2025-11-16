@@ -64,9 +64,12 @@ format:
     # uv run sqlfluff fix $sql_folder
     # uv run ruff format
 
+# need to do this as mypy as issues with files of the same name (conftest.py)
 # type checking
 type-check:
     uv run mypy .
+    uv run mypy tests/conftest.py
+    uv run mypy tests/integration/conftest.py
 
 # testing
 # handling errors

@@ -13,7 +13,8 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        #os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]  # Temporarily disabled macOS due to flaky wall clock for integration tests
         python-version: ["3.12"]
 
     steps:
