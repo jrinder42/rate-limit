@@ -121,6 +121,8 @@ exclude = [
 strict = true
 exclude = [
     "examples/",
+    "tests/conftest.py",
+    "tests/integration/conftest.py",
 ]
 exclude_gitignore = true
 
