@@ -16,9 +16,8 @@ class BucketConfig:
 
     def __post_init__(self) -> None:
         """Validate the configuration parameters"""
-        leak_rate_per_sec = self.capacity / self.seconds  # can also be thought of as fill_rate_per_sec
-        if leak_rate_per_sec <= 0:
-            raise ValueError("leak_rate_per_sec must be positive and non-zero")
+        if self.seconds <= 0:
+            raise ValueError("seconds must be positive and non-zero")
 
         if self.capacity < 1:
             raise ValueError("capacity must be at least 1")
