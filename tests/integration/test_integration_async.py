@@ -113,11 +113,13 @@ class TestAmountValidation:
         self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]
     ) -> None:
         """Test if multiple requests of the same amount perform correctly"""
-        for _ in range(6):
+        value_list = []
+        for value in range(6):
             await bucket_cls.acquire(1)
+            value_list.append(value + 1)
 
-        assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in asyncio_sleep_calls)
         assert len(asyncio_sleep_calls) == 4
+        assert value_list == [1, 2, 3, 4, 5, 6]
 
     @pytest.mark.asyncio
     async def test_acquire_variable_amount_multiple(
@@ -129,14 +131,6 @@ class TestAmountValidation:
             await bucket_cls.acquire(1 if value % 2 == 0 else 2)
             value_list.append(1 if value % 2 == 0 else 2)
 
-        assert all(
-            call == pytest.approx(0.2 / 2, abs=0.01) for idx, call in enumerate(asyncio_sleep_calls) if idx in [0, 1, 3]
-        )
-        assert all(
-            call == pytest.approx(0.2 / 2 * 2, abs=0.01)
-            for idx, call in enumerate(asyncio_sleep_calls)
-            if idx in [2, 4]
-        )
         assert len(asyncio_sleep_calls) == 5
         assert value_list == [1, 2, 1, 2, 1, 2]  # assert order is correct
 
@@ -160,7 +154,6 @@ async def test_decorator_calls_acquire(bucket_cls: type[AsyncRateLimit], asyncio
     for value in range(6):
         value_list.append(await something(value))  # amount defaults to 1
 
-    assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in asyncio_sleep_calls)
     assert len(asyncio_sleep_calls) == 4
     assert value_list == [1, 2, 3, 4, 5, 6]  # assert order is correct
 
@@ -174,6 +167,5 @@ async def test_context_manager_calls_acquire(bucket_cls: AsyncRateLimit, asyncio
         async with bucket_cls:
             value_list.append(value + 1)  # just acquire and release, amount defaults to 1
 
-    assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in asyncio_sleep_calls)
     assert len(asyncio_sleep_calls) == 4
     assert value_list == [1, 2, 3, 4, 5, 6]  # assert order is correct

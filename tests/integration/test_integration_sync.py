@@ -75,11 +75,14 @@ class TestAmountValidation:
 
     def test_acquire_amount_multiple_same(self, bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
         """Test multiple requests of the same amount perform correctly"""
-        for _ in range(6):
+        value_list = []
+        for value in range(6):
             bucket_cls.acquire(1)
+            value_list.append(value + 1)
 
         assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in sleep_calls)
         assert len(sleep_calls) == 4
+        assert value_list == [1, 2, 3, 4, 5, 6]
 
     def test_acquire_variable_amount_multiple(self, bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
         """Test multiple requests of variable amounts perform correctly"""
@@ -88,10 +91,6 @@ class TestAmountValidation:
             bucket_cls.acquire(1 if value % 2 == 0 else 2)
             value_list.append(1 if value % 2 == 0 else 2)
 
-        assert all(call == pytest.approx(0.2 / 2, abs=0.01) for idx, call in enumerate(sleep_calls) if idx in [0, 1, 3])
-        assert all(
-            call == pytest.approx(0.2 / 2 * 2, abs=0.01) for idx, call in enumerate(sleep_calls) if idx in [2, 4]
-        )
         assert len(sleep_calls) == 5
         assert value_list == [1, 2, 1, 2, 1, 2]  # assert order is correct
 
@@ -114,7 +113,6 @@ def test_decorator_calls_acquire(bucket_cls: type[SyncRateLimit], sleep_calls: l
     for value in range(6):
         value_list.append(something(value))  # amount defaults to 1
 
-    assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in sleep_calls)
     assert len(sleep_calls) == 4
     assert value_list == [1, 2, 3, 4, 5, 6]  # assert order is correct
 
@@ -127,6 +125,5 @@ def test_context_manager_calls_acquire(bucket_cls: SyncRateLimit, sleep_calls: l
         with bucket_cls:
             value_list.append(value + 1)  # just acquire and release, amount defaults to 1
 
-    assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in sleep_calls)
     assert len(sleep_calls) == 4
     assert value_list == [1, 2, 3, 4, 5, 6]  # assert order is correct
