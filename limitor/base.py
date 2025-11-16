@@ -3,16 +3,33 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Any, Protocol
+from typing import Protocol
+
+from limitor.configs import BucketConfig
+
+
+class HasCapacity(Protocol):  # pylint: disable=too-few-public-methods
+    """Protocol for objects that have a capacity attribute"""
+
+    capacity: float
+    """Maximum number of items the bucket can hold i.e. number of requests that can be processed at once"""
 
 
 class SyncRateLimit(Protocol):
-    """Synchronous Rate Limit Protocol"""
+    """Synchronous Rate Limit Protocol
 
-    def __init__(self, config: Any) -> None: ...
+    Args:
+        config: Configuration for the rate limit
+    """
+
+    def __init__(self, config: BucketConfig) -> None: ...
 
     def acquire(self, amount: float = 1) -> None:
-        """Acquire an item from the rate limit. This method should block until a token is available"""
+        """Acquire an item from the rate limit. This method should block until a token is available
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+        """
 
     def __enter__(self) -> SyncRateLimit:
         """Enter the context manager, acquiring resources if necessary
@@ -35,12 +52,22 @@ class SyncRateLimit(Protocol):
 
 
 class AsyncRateLimit(Protocol):
-    """Asynchronous Rate Limit Protocol"""
+    """Asynchronous Rate Limit Protocol
 
-    def __init__(self, config: Any, max_concurrent: int | None = None) -> None: ...
+    Args:
+        config: Configuration for the rate limit
+        max_concurrent: Maximum number of concurrent requests allowed to acquire capacity
+    """
 
-    async def acquire(self, amount: float = 1) -> None:
-        """Acquire an item from the rate limit. This method should block until a token is available"""
+    def __init__(self, config: BucketConfig, max_concurrent: int | None = None) -> None: ...
+
+    async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
+        """Acquire an item from the rate limit. This method should block until a token is available
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+            timeout: Optional timeout in seconds for the acquire operation
+        """
 
     async def __aenter__(self) -> AsyncRateLimit:
         """Enter the context manager, acquiring resources if necessary

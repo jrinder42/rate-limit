@@ -37,6 +37,7 @@ dev = [
 ]
 testing = [
     "pytest>=8.2",
+    "pytest-asyncio",
     "coverage",
 ]
 ci = [
@@ -118,5 +119,12 @@ exclude = [
 
 [tool.mypy]
 strict = true
-exclude = 'examples/'
+exclude = [
+    "examples/",
+]
 exclude_gitignore = true
+
+[tool.pytest.ini_options]
+# Ensure pytest doesn't recurse into the exploration/ directory.
+# This avoids adding a top-level conftest.py while still configuring pytest.
+norecursedirs = ["exploration"]
