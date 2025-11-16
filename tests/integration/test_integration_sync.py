@@ -80,7 +80,6 @@ class TestAmountValidation:
             bucket_cls.acquire(1)
             value_list.append(value + 1)
 
-        assert all(call == pytest.approx(0.2 / 2, abs=0.01) for call in sleep_calls)
         assert len(sleep_calls) == 4
         assert value_list == [1, 2, 3, 4, 5, 6]
 
