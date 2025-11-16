@@ -13,6 +13,7 @@ from contextlib import nullcontext
 from types import TracebackType
 
 from limitor.configs import BucketConfig
+from limitor.utils import validate_amount
 
 
 class SyncVirtualSchedulingGCRA:
@@ -48,12 +49,8 @@ class SyncVirtualSchedulingGCRA:
 
         Args:
             amount: The amount of resources to acquire (default is 1)
-
-        Raises:
-            ValueError: If the amount exceeds the configured capacity
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         t_a = time.monotonic()
         if self._tat is None:
@@ -121,12 +118,8 @@ class SyncLeakyBucketGCRA:
 
         Args:
             amount: The amount of resources to acquire (default is 1)
-
-        Raises:
-            ValueError: If the amount exceeds the configured capacity
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         t_a = time.monotonic()
         if self._last_leak is None:
@@ -249,11 +242,9 @@ class AsyncVirtualSchedulingGCRA:
             timeout: Optional timeout in seconds for the acquire operation
 
         Raises:
-            ValueError: If the requested amount exceeds the bucket's capacity
             TimeoutError: If the acquire operation times out after the specified timeout period
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         if timeout is not None:
             try:
@@ -343,7 +334,7 @@ class AsyncLeakyBucketGCRA:
             tau = self.T * (self.capacity - amount)
             if self._bucket_level > tau:
                 delay = self._bucket_level - tau
-                time.sleep(delay)
+                await asyncio.sleep(delay)
 
                 self._bucket_level = self._bucket_level - delay
                 t_a += delay
@@ -371,11 +362,9 @@ class AsyncLeakyBucketGCRA:
             timeout: Optional timeout in seconds for the acquire operation
 
         Raises:
-            ValueError: If the requested amount exceeds the bucket's capacity
             TimeoutError: If the acquire operation times out after the specified timeout period
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         if timeout is not None:
             try:
