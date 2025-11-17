@@ -5,6 +5,7 @@ import pytest
 from limitor import async_rate_limit
 from limitor.base import AsyncRateLimit
 from limitor.configs import BucketConfig
+from limitor.extra.leaky_bucket.core import AsyncLeakyBucket as AsyncLeakyBucketExtra
 from limitor.generic_cell_rate.core import (
     AsyncLeakyBucketGCRA,
     AsyncVirtualSchedulingGCRA,
@@ -14,14 +15,16 @@ from limitor.token_bucket.core import AsyncTokenBucket
 
 
 # parametrized fixture: any test that accepts `bucket_cls_capacity` will be run once per class
-@pytest.fixture(params=[AsyncLeakyBucket, AsyncTokenBucket])
+@pytest.fixture(params=[AsyncLeakyBucket, AsyncTokenBucket, AsyncLeakyBucketExtra])
 def bucket_cls_capacity(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> Any:
     """Fixture that provides bucket instances with capacity=2, seconds=0.2 for capacity tests"""
     return request.param(bucket_config)  # like AsyncLeakyBucket(BucketConfig(...))
 
 
 # parametrized fixture: any test that accepts `bucket_cls` will be run once per class
-@pytest.fixture(params=[AsyncLeakyBucket, AsyncTokenBucket, AsyncLeakyBucketGCRA, AsyncVirtualSchedulingGCRA])
+@pytest.fixture(
+    params=[AsyncLeakyBucket, AsyncTokenBucket, AsyncLeakyBucketGCRA, AsyncVirtualSchedulingGCRA, AsyncLeakyBucketExtra]
+)
 def bucket_cls(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> Any:
     """Fixture that provides bucket instances with capacity=2, seconds=0.2 for general tests"""
     return request.param(bucket_config)  # like AsyncLeakyBucket(BucketConfig(...))
@@ -169,3 +172,20 @@ async def test_context_manager_calls_acquire(bucket_cls: AsyncRateLimit, asyncio
 
     assert len(asyncio_sleep_calls) == 4
     assert value_list == [1, 2, 3, 4, 5, 6]  # assert order is correct
+
+
+@pytest.mark.asyncio
+async def test_shutdown_without_starting_worker(bucket_config: BucketConfig) -> None:
+    """Shutdown should be a no-op if the worker was never started."""
+    bucket = AsyncLeakyBucketExtra(bucket_config)
+    # worker should not be started at construction time
+    assert bucket._worker_task is None  # pylint: disable=protected-access
+
+    # calling shutdown in an async context should not raise
+    await bucket.shutdown()
+
+    # still not started
+    assert bucket._worker_task is None  # pylint: disable=protected-access
+
+    # idempotent: calling shutdown again should still be fine
+    await bucket.shutdown()
