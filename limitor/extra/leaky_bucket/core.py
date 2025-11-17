@@ -8,6 +8,7 @@ from types import TracebackType
 from typing import Any
 
 from limitor.configs import BucketConfig, Capacity
+from limitor.utils import validate_amount
 
 
 class AsyncLeakyBucket:
@@ -29,7 +30,10 @@ class AsyncLeakyBucket:
         self._bucket_level = 0.0
         self._last_leak = time.monotonic()
         self._queue: asyncio.Queue[Any] = asyncio.Queue()
-        self._worker_task = asyncio.create_task(self._worker())
+        # Do NOT create background tasks at import/instantiation time because there
+        # may be no running event loop (e.g. when pytest constructs fixtures).
+        # Create the worker lazily on first use (inside an async context).
+        self._worker_task: asyncio.Task[None] | None = None
 
     def _leak(self) -> None:
         """Leak the bucket based on the elapsed time since the last leak"""
@@ -105,11 +109,9 @@ class AsyncLeakyBucket:
             timeout: Optional timeout in seconds for the acquire operation
 
         Raises:
-            ValueError: If the requested amount exceeds the bucket's capacity
             TimeoutError: If the acquire operation times out after the specified timeout period
         """
-        if amount > self.capacity:
-            raise ValueError(f"Cannot acquire more than the bucket's capacity: {self.capacity}")
+        validate_amount(self, amount=amount)
 
         if timeout is not None:
             try:
@@ -126,12 +128,18 @@ class AsyncLeakyBucket:
             amount: The amount of capacity to acquire, defaults to 1
             timeout: Optional timeout in seconds for the acquire operation
         """
+        if self._worker_task is None or self._worker_task.done():
+            self._worker_task = asyncio.create_task(self._worker())
+
         future = asyncio.get_event_loop().create_future()
         await self._queue.put((amount, future, timeout))
         await future
 
     async def shutdown(self) -> None:
         """Gracefully shut down the worker task."""
+        if self._worker_task is None:  # if worker never started, do nothing
+            return
+
         await self._queue.put(None)  # Sentinel value
         await self._worker_task
 
