@@ -83,6 +83,9 @@ uv lock --upgrade-package requests
 
 ### LLM Token-Based Rate Limiting
 
+> [!NOTE]
+> This decorator assumes that the user will pass any necessary params. If you want to make these optional, see `limitor/__init__.py`
+
 ```python
 import random
 import time
