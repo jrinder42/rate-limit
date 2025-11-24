@@ -43,7 +43,7 @@ testing = [
 ci = [
     "black",
     "isort",
-    "mypy",
+    "mypy>=1.18.0",
     "ruff",
     "pylint",
     "sqlfluff",
