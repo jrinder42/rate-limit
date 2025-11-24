@@ -16,14 +16,17 @@ P = ParamSpec("P")  # parameters
 R = TypeVar("R")  # return type
 
 
-def rate_limit(
+def rate_limit[**P, R](
+    _func: Callable[P, R] | None = None,
+    *,
     capacity: float = 10,
     seconds: float = 1,
     bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
+) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to apply a synchronous leaky bucket rate limit to a function.
 
     Args:
+        _func: Function to apply the rate limit to the function
         capacity: Maximum number of requests allowed in the bucket, defaults to 10
         seconds: Time period in seconds for the bucket to refill, defaults to 1
         bucket_cls: Bucket class, defaults to SyncLeakyBucket
@@ -40,18 +43,23 @@ def rate_limit(
 
         return wrapper
 
-    return decorator
+    if _func is None:
+        return decorator
+    return decorator(_func)
 
 
-def async_rate_limit(
+def async_rate_limit[**P, R](
+    _func: Callable[P, Awaitable[R]] | None = None,
+    *,
     capacity: float = 10,
     seconds: float = 1,
     max_concurrent: int | None = None,
     bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
-) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+) -> Callable[P, Awaitable[R]] | Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     """Decorator to apply an asynchronous leaky bucket rate limit to a function.
 
     Args:
+        _func: Function to apply the rate limit to the function
         capacity: Maximum number of requests allowed in the bucket, defaults to 10
         seconds: Time period in seconds for the bucket to refill, defaults to 1
         max_concurrent: Maximum number of concurrent requests allowed, defaults to None (no limit)
@@ -69,4 +77,6 @@ def async_rate_limit(
 
         return wrapper
 
-    return decorator
+    if _func is None:
+        return decorator
+    return decorator(_func)
