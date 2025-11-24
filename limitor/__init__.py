@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar, overload
 
 from limitor.base import AsyncRateLimit, SyncRateLimit
 from limitor.configs import BucketConfig
@@ -14,6 +14,26 @@ from limitor.leaky_bucket.core import (
 
 P = ParamSpec("P")  # parameters
 R = TypeVar("R")  # return type
+
+
+@overload
+def rate_limit[**P, R](
+    _func: None = None,
+    *,
+    capacity: float = 10,
+    seconds: float = 1,
+    bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+@overload
+def rate_limit[**P, R](
+    _func: Callable[P, R],
+    *,
+    capacity: float = 10,
+    seconds: float = 1,
+    bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
+) -> Callable[P, R]: ...
 
 
 def rate_limit[**P, R](
@@ -46,6 +66,28 @@ def rate_limit[**P, R](
     if _func is None:
         return decorator
     return decorator(_func)
+
+
+@overload
+def async_rate_limit[**P, R](
+    _func: None = None,
+    *,
+    capacity: float = 10,
+    seconds: float = 1,
+    max_concurrent: int | None = None,
+    bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]: ...
+
+
+@overload
+def async_rate_limit[**P, R](
+    _func: Callable[P, Awaitable[R]],
+    *,
+    capacity: float = 10,
+    seconds: float = 1,
+    max_concurrent: int | None = None,
+    bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
+) -> Callable[P, Awaitable[R]]: ...
 
 
 def async_rate_limit[**P, R](
