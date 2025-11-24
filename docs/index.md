@@ -29,6 +29,11 @@ LLM Token Rate Limiting
 
 - System-wide rate limit of 100,000 tokens per second + simulate inputs of varying token amounts 
 
+??? warning "decorator creation"
+
+    This assumes all parameters need to be passed by the end-user. If you want to
+    create a decorator with optional parameters, see `limitor/__init__.py` for an example.
+
 === "Synchronous"
 
     ```python
