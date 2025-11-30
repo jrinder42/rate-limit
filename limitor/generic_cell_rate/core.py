@@ -10,10 +10,11 @@ from __future__ import annotations
 import asyncio
 import time
 from contextlib import nullcontext
+from decimal import Decimal
 from types import TracebackType
 
 from limitor.configs import BucketConfig
-from limitor.utils import validate_amount
+from limitor.utils import ensure_decimal_amount, validate_amount
 
 
 class SyncVirtualSchedulingGCRA:
@@ -42,9 +43,10 @@ class SyncVirtualSchedulingGCRA:
         # self.tau = self.T * self.burst
 
         # theoretical arrival time (TAT)
-        self._tat: float | None = None
+        self._tat: Decimal | None = None
 
-    def acquire(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    def acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
 
         Args:
@@ -52,7 +54,7 @@ class SyncVirtualSchedulingGCRA:
         """
         validate_amount(self, amount=amount)
 
-        t_a = time.monotonic()
+        t_a = Decimal(time.monotonic())
         if self._tat is None:
             # first cell
             self._tat = t_a
@@ -61,7 +63,7 @@ class SyncVirtualSchedulingGCRA:
         tau = self.T * (self.capacity - amount)
         if t_a < self._tat - tau:
             delay = (self._tat - tau) - t_a
-            time.sleep(delay)
+            time.sleep(float(delay))
 
         self._tat = max(t_a, self._tat) + amount * self.T
 
@@ -110,10 +112,11 @@ class SyncLeakyBucketGCRA:
         # burst rate, but can't do this if the amount is variable
         # self.tau = self.T * self.burst
 
-        self._bucket_level = 0.0  # current volume in the bucket
-        self._last_leak: float | None = None  # same as last conforming time or LCT
+        self._bucket_level = Decimal(0.0)  # current volume in the bucket
+        self._last_leak: Decimal | None = None  # same as last conforming time or LCT
 
-    def acquire(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    def acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
 
         Args:
@@ -121,10 +124,10 @@ class SyncLeakyBucketGCRA:
         """
         validate_amount(self, amount=amount)
 
-        t_a = time.monotonic()
+        t_a = Decimal(time.monotonic())
         if self._last_leak is None:
             # first cell
-            self._bucket_level = 0
+            self._bucket_level = Decimal(0)
             self._last_leak = t_a
 
         elapsed = t_a - self._last_leak
@@ -134,12 +137,12 @@ class SyncLeakyBucketGCRA:
         tau = self.T * (self.capacity - amount)
         if self._bucket_level > tau:
             delay = self._bucket_level - tau
-            time.sleep(delay)
+            time.sleep(float(delay))
 
             self._bucket_level = self._bucket_level - delay
             t_a += delay
 
-        self._bucket_level = max(0.0, self._bucket_level) + amount * self.T
+        self._bucket_level = max(Decimal(0.0), self._bucket_level) + amount * self.T
         self._last_leak = t_a
 
     def __enter__(self) -> SyncLeakyBucketGCRA:
@@ -189,12 +192,13 @@ class AsyncVirtualSchedulingGCRA:
         # self.tau = self.T * self.burst
 
         # theoretical arrival time (TAT)
-        self._tat: float | None = None
+        self._tat: Decimal | None = None
 
         self.max_concurrent = max_concurrent
         self._lock = asyncio.Lock()
 
-    async def _acquire_logic(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    async def _acquire_logic(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
 
         Args:
@@ -209,7 +213,7 @@ class AsyncVirtualSchedulingGCRA:
                 at the same time, which could lead to an inconsistent state i.e. a race condition.
         """
         async with self._lock:  # ensure atomicity given we can have multiple concurrent requests
-            t_a = time.monotonic()
+            t_a = Decimal(time.monotonic())
             if self._tat is None:
                 # first cell
                 self._tat = t_a
@@ -218,11 +222,12 @@ class AsyncVirtualSchedulingGCRA:
             tau = self.T * (self.capacity - amount)
             if t_a < self._tat - tau:
                 delay = (self._tat - tau) - t_a
-                await asyncio.sleep(delay)
+                await asyncio.sleep(float(delay))
 
             self._tat = max(t_a, self._tat) + amount * self.T
 
-    async def _semaphore_acquire(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    async def _semaphore_acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire capacity using a semaphore to limit concurrency.
 
         Args:
@@ -232,7 +237,8 @@ class AsyncVirtualSchedulingGCRA:
         async with semaphore:
             await self._acquire_logic(amount)
 
-    async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
+    @ensure_decimal_amount
+    async def acquire(self, amount: Decimal = Decimal(1), timeout: float | None = None) -> None:
         """Acquire capacity, waiting asynchronously until allowed.
 
         Supports timeout and cancellation.
@@ -300,13 +306,14 @@ class AsyncLeakyBucketGCRA:
         # burst rate, but can't do this if the amount is variable
         # self.tau = self.T * self.burst
 
-        self._bucket_level = 0.0  # current volume in the bucket
-        self._last_leak: float | None = None  # same as last conforming time or LCT
+        self._bucket_level = Decimal(0.0)  # current volume in the bucket
+        self._last_leak: Decimal | None = None  # same as last conforming time or LCT
 
         self.max_concurrent = max_concurrent
         self._lock = asyncio.Lock()
 
-    async def _acquire_logic(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    async def _acquire_logic(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
 
         Args:
@@ -321,10 +328,10 @@ class AsyncLeakyBucketGCRA:
                 at the same time, which could lead to an inconsistent state i.e. a race condition.
         """
         async with self._lock:  # ensure atomicity given we can have multiple concurrent requests
-            t_a = time.monotonic()
+            t_a = Decimal(time.monotonic())
             if self._last_leak is None:
                 # first cell
-                self._bucket_level = 0
+                self._bucket_level = Decimal(0)
                 self._last_leak = t_a
 
             elapsed = t_a - self._last_leak
@@ -334,15 +341,16 @@ class AsyncLeakyBucketGCRA:
             tau = self.T * (self.capacity - amount)
             if self._bucket_level > tau:
                 delay = self._bucket_level - tau
-                await asyncio.sleep(delay)
+                await asyncio.sleep(float(delay))
 
                 self._bucket_level = self._bucket_level - delay
                 t_a += delay
 
-            self._bucket_level = max(0.0, self._bucket_level) + amount * self.T
+            self._bucket_level = max(Decimal(0.0), self._bucket_level) + amount * self.T
             self._last_leak = t_a
 
-    async def _semaphore_acquire(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    async def _semaphore_acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire capacity using a semaphore to limit concurrency.
 
         Args:
@@ -352,7 +360,8 @@ class AsyncLeakyBucketGCRA:
         async with semaphore:
             await self._acquire_logic(amount)
 
-    async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
+    @ensure_decimal_amount
+    async def acquire(self, amount: Decimal = Decimal(1), timeout: float | None = None) -> None:
         """Acquire capacity, waiting asynchronously until allowed.
 
         Supports timeout and cancellation.

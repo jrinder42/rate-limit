@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import time
+from decimal import Decimal
 from types import TracebackType
 from typing import Any
 
 from limitor.configs import BucketConfig, Capacity
-from limitor.utils import validate_amount
+from limitor.utils import ensure_decimal_amount, validate_amount
 
 
 class AsyncLeakyBucket:
@@ -27,8 +28,8 @@ class AsyncLeakyBucket:
         self.seconds = config.seconds
 
         self.leak_rate = self.capacity / self.seconds
-        self._bucket_level = 0.0
-        self._last_leak = time.monotonic()
+        self._bucket_level = Decimal(0.0)
+        self._last_leak = Decimal(time.monotonic())
         self._queue: asyncio.Queue[Any] = asyncio.Queue()
         # Do NOT create background tasks at import/instantiation time because there
         # may be no running event loop (e.g. when pytest constructs fixtures).
@@ -37,12 +38,13 @@ class AsyncLeakyBucket:
 
     def _leak(self) -> None:
         """Leak the bucket based on the elapsed time since the last leak"""
-        now = time.monotonic()
+        now = Decimal(time.monotonic())
         elapsed = now - self._last_leak
-        self._bucket_level = max(0.0, self._bucket_level - elapsed * self.leak_rate)
+        self._bucket_level = max(Decimal(0.0), self._bucket_level - elapsed * self.leak_rate)
         self._last_leak = now
 
-    def capacity_info(self, amount: float = 1) -> Capacity:
+    @ensure_decimal_amount
+    def capacity_info(self, amount: Decimal = Decimal(1)) -> Capacity:
         """Get the current capacity information of the leaky bucket
 
         Args:
@@ -72,7 +74,8 @@ class AsyncLeakyBucket:
 
             self._queue.task_done()
 
-    async def _acquire_logic(self, amount: float) -> None:
+    @ensure_decimal_amount
+    async def _acquire_logic(self, amount: Decimal) -> None:
         """Core logic for acquiring capacity from the leaky bucket.
 
         Args:
@@ -93,13 +96,14 @@ class AsyncLeakyBucket:
             # needed is guaranteed to be positive here, so we can use it directly
             wait_time = needed / self.leak_rate
             if wait_time > 0:
-                await asyncio.sleep(wait_time)
+                await asyncio.sleep(float(wait_time))
 
             capacity_info = self.capacity_info(amount=amount)
 
         self._bucket_level += amount
 
-    async def _timeout_acquire(self, amount: float, timeout: float | None) -> None:
+    @ensure_decimal_amount
+    async def _timeout_acquire(self, amount: Decimal, timeout: float | None) -> None:
         """Acquire capacity from the leaky bucket, waiting asynchronously until allowed.
 
         Supports timeout and cancellation.
@@ -121,7 +125,8 @@ class AsyncLeakyBucket:
         else:
             await self._acquire_logic(amount)
 
-    async def acquire(self, amount: float = 1.0, timeout: float | None = None) -> None:
+    @ensure_decimal_amount
+    async def acquire(self, amount: Decimal = Decimal(1.0), timeout: float | None = None) -> None:
         """Acquire capacity from the leaky bucket, waiting asynchronously until allowed.
 
         Args:

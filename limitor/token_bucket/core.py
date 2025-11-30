@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import time
 from contextlib import nullcontext
+from decimal import Decimal
 from types import TracebackType
 
 from limitor.configs import BucketConfig, Capacity
-from limitor.utils import validate_amount
+from limitor.utils import ensure_decimal_amount, validate_amount
 
 
 class SyncTokenBucket:
@@ -30,16 +31,17 @@ class SyncTokenBucket:
         self.fill_rate = self.capacity / self.seconds  # units per second
 
         self._bucket_level = self.capacity  # current volume of tokens in the bucket
-        self._last_fill = time.monotonic()  # last refill time
+        self._last_fill = Decimal(time.monotonic())  # last refill time
 
     def _fill(self) -> None:
         """Fill the bucket based on the elapsed time since the last fill"""
-        now = time.monotonic()
+        now = Decimal(time.monotonic())
         elapsed = now - self._last_fill
         self._bucket_level = min(self.capacity, self._bucket_level + elapsed * self.fill_rate)
         self._last_fill = now
 
-    def capacity_info(self, amount: float = 1) -> Capacity:
+    @ensure_decimal_amount
+    def capacity_info(self, amount: Decimal = Decimal(1)) -> Capacity:
         """Get the current capacity information of the token bucket
 
         Args:
@@ -53,7 +55,8 @@ class SyncTokenBucket:
         needed = amount - self._bucket_level
         return Capacity(has_capacity=needed <= 0, needed_capacity=needed)
 
-    def acquire(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    def acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire capacity from the token bucket, blocking until enough capacity is available.
 
         This method will block and sleep until the requested amount can be acquired
@@ -69,12 +72,12 @@ class SyncTokenBucket:
 
         capacity_info = self.capacity_info(amount=amount)
         while not capacity_info.has_capacity:
-            needed = capacity_info.needed_capacity
+            needed = capacity_info.needed_capacity  # change in namedtuple
             # amount we need to wait to leak
             # needed is guaranteed to be positive here, so we can use it directly
             wait_time = needed / self.fill_rate
             if wait_time > 0:
-                time.sleep(wait_time)
+                time.sleep(float(wait_time))
 
             capacity_info = self.capacity_info(amount=amount)
 
@@ -109,19 +112,20 @@ class AsyncTokenBucket:
         self.fill_rate = self.capacity / self.seconds
 
         self._bucket_level = self.capacity
-        self._last_fill = time.monotonic()
+        self._last_fill = Decimal(time.monotonic())
 
         self.max_concurrent = max_concurrent
         self._lock = asyncio.Lock()
 
     def _fill(self) -> None:
         """Fill the bucket based on the elapsed time since the last fill"""
-        now = time.monotonic()
+        now = Decimal(time.monotonic())
         elapsed = now - self._last_fill
         self._bucket_level = min(self.capacity, self._bucket_level + elapsed * self.fill_rate)
         self._last_fill = now
 
-    def capacity_info(self, amount: float = 1) -> Capacity:
+    @ensure_decimal_amount
+    def capacity_info(self, amount: Decimal = Decimal(1)) -> Capacity:
         """Get the current capacity information of the token bucket
 
         Args:
@@ -135,7 +139,8 @@ class AsyncTokenBucket:
         needed = amount - self._bucket_level
         return Capacity(has_capacity=needed <= 0, needed_capacity=needed)
 
-    async def _acquire_logic(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    async def _acquire_logic(self, amount: Decimal = Decimal(1)) -> None:
         """Core logic for acquiring capacity from the token bucket.
 
         Args:
@@ -157,13 +162,14 @@ class AsyncTokenBucket:
                 # needed is guaranteed to be positive here, so we can use it directly
                 wait_time = needed / self.fill_rate
                 if wait_time > 0:
-                    await asyncio.sleep(wait_time)
+                    await asyncio.sleep(float(wait_time))
 
                 capacity_info = self.capacity_info(amount=amount)
 
             self._bucket_level -= amount
 
-    async def _semaphore_acquire(self, amount: float = 1) -> None:
+    @ensure_decimal_amount
+    async def _semaphore_acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire capacity using a semaphore to limit concurrency.
 
         Args:
@@ -173,7 +179,8 @@ class AsyncTokenBucket:
         async with semaphore:
             await self._acquire_logic(amount)
 
-    async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
+    @ensure_decimal_amount
+    async def acquire(self, amount: Decimal = Decimal(1), timeout: float | None = None) -> None:
         """Acquire capacity from the token bucket, waiting asynchronously until allowed.
 
         Supports timeouts and cancellations.
