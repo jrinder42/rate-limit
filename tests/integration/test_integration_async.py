@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -65,12 +66,12 @@ class TestTimeoutValidation:
     async def test_async_timeout_error(self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
         """Test that acquire raises TimeoutError when timeout is exceeded"""
         # fill the bucket so the next acquire will need to wait
-        await bucket_cls.acquire(1)
-        await bucket_cls.acquire(1)
+        await bucket_cls.acquire(Decimal(1))
+        await bucket_cls.acquire(Decimal(1))
 
         # test timeout path: set a very small timeout to trigger TimeoutError
         with pytest.raises(TimeoutError):
-            await bucket_cls.acquire(1, timeout=0.001)  # 0.1 > 0.001
+            await bucket_cls.acquire(Decimal(1), timeout=0.001)  # 0.1 > 0.001
 
         # the spy may have recorded a sleep call for the waiting logic
         assert len(asyncio_sleep_calls) == 1
@@ -78,10 +79,10 @@ class TestTimeoutValidation:
     async def test_async_timeout_good(self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
         """Test that acquire succeeds when timeout is sufficient"""
         # fill the bucket so the next acquire will need to wait
-        await bucket_cls.acquire(1)
-        await bucket_cls.acquire(1)
+        await bucket_cls.acquire(Decimal(1))
+        await bucket_cls.acquire(Decimal(1))
 
-        await bucket_cls.acquire(1, timeout=0.2)
+        await bucket_cls.acquire(Decimal(1), timeout=0.2)
 
         # the spy may have recorded a sleep call for the waiting logic
         assert len(asyncio_sleep_calls) == 1
@@ -94,16 +95,16 @@ class TestAmountValidation:
     async def test_acquire_rejects_amount_greater_than_capacity(self, bucket_cls: AsyncRateLimit) -> None:
         """Verify that requesting more than the configured capacity raises ValueError"""
         with pytest.raises(ValueError, match=r"Cannot acquire more than the bucket's capacity: 2"):
-            await bucket_cls.acquire(3)
+            await bucket_cls.acquire(Decimal(3))
 
     async def test_acquire_rejects_amount_less_than_zero(self, bucket_cls: AsyncRateLimit) -> None:
         """Verify that requesting less than zero raises ValueError"""
         with pytest.raises(ValueError, match=r"Cannot acquire less than 0 amount with amount: -1"):
-            await bucket_cls.acquire(-1)
+            await bucket_cls.acquire(Decimal(-1))
 
     async def test_acquire_amount_single(self, bucket_cls: AsyncRateLimit, asyncio_sleep_calls: list[float]) -> None:
         """Test if a single request performs correctly"""
-        await bucket_cls.acquire(1)
+        await bucket_cls.acquire(Decimal(1))
 
         assert len(asyncio_sleep_calls) == 0  # first acquire should not sleep
 
@@ -113,7 +114,7 @@ class TestAmountValidation:
         """Test if multiple requests of the same amount perform correctly"""
         value_list = []
         for value in range(6):
-            await bucket_cls.acquire(1)
+            await bucket_cls.acquire(Decimal(1))
             value_list.append(value + 1)
 
         assert len(asyncio_sleep_calls) >= 4  # possibility of some extra sleeps depending on OS timing
@@ -125,7 +126,7 @@ class TestAmountValidation:
         """Test if multiple requests of variable amounts perform correctly"""
         value_list = []
         for value in range(6):
-            await bucket_cls.acquire(1 if value % 2 == 0 else 2)
+            await bucket_cls.acquire(Decimal(1) if value % 2 == 0 else Decimal(2))
             value_list.append(1 if value % 2 == 0 else 2)
 
         assert len(asyncio_sleep_calls) >= 5
@@ -143,7 +144,7 @@ class TestAmountValidation:
 async def test_decorator_calls_acquire(bucket_cls: type[AsyncRateLimit], asyncio_sleep_calls: list[float]) -> None:
     """Test that the async_rate_limit decorator calls acquire on the bucket"""
 
-    @async_rate_limit(capacity=2, seconds=0.2, bucket_cls=bucket_cls)
+    @async_rate_limit(capacity=Decimal(2), seconds=Decimal(0.2), bucket_cls=bucket_cls)
     async def something(x: int) -> int:
         return x + 1
 

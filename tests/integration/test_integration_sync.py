@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -60,16 +61,16 @@ class TestAmountValidation:
     def test_acquire_rejects_amount_greater_than_capacity(self, bucket_cls: SyncRateLimit) -> None:
         """Verify that requesting more than the configured capacity raises ValueError"""
         with pytest.raises(ValueError, match=r"Cannot acquire more than the bucket's capacity: 2"):
-            bucket_cls.acquire(3)
+            bucket_cls.acquire(Decimal(3))
 
     def test_acquire_rejects_amount_less_than_zero(self, bucket_cls: SyncRateLimit) -> None:
         """Verify that requesting a negative amount raises ValueError"""
         with pytest.raises(ValueError, match=r"Cannot acquire less than 0 amount with amount: -1"):
-            bucket_cls.acquire(-1)
+            bucket_cls.acquire(Decimal(-1))
 
     def test_acquire_amount_single(self, bucket_cls: SyncRateLimit, sleep_calls: list[float]) -> None:
         """Test if a single request performs correctly"""
-        bucket_cls.acquire(1)
+        bucket_cls.acquire(Decimal(1))
 
         assert len(sleep_calls) == 0  # first acquire should not sleep
 
@@ -77,7 +78,7 @@ class TestAmountValidation:
         """Test multiple requests of the same amount perform correctly"""
         value_list = []
         for value in range(6):
-            bucket_cls.acquire(1)
+            bucket_cls.acquire(Decimal(1))
             value_list.append(value + 1)
 
         assert len(sleep_calls) >= 4  # possibility of some extra sleeps depending on OS timing
@@ -87,7 +88,7 @@ class TestAmountValidation:
         """Test multiple requests of variable amounts perform correctly"""
         value_list = []
         for value in range(6):
-            bucket_cls.acquire(1 if value % 2 == 0 else 2)
+            bucket_cls.acquire(Decimal(1) if value % 2 == 0 else Decimal(2))
             value_list.append(1 if value % 2 == 0 else 2)
 
         assert len(sleep_calls) >= 5
@@ -104,7 +105,7 @@ class TestAmountValidation:
 def test_decorator_calls_acquire(bucket_cls: type[SyncRateLimit], sleep_calls: list[float]) -> None:
     """Ensure the rate_limit decorator calls acquire on the bucket"""
 
-    @rate_limit(capacity=2, seconds=0.2, bucket_cls=bucket_cls)
+    @rate_limit(capacity=Decimal(2), seconds=Decimal(0.2), bucket_cls=bucket_cls)
     def something(x: int) -> int:
         return x + 1
 
