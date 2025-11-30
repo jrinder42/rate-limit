@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from types import TracebackType
 from typing import Protocol
 
@@ -11,7 +12,7 @@ from limitor.configs import BucketConfig
 class HasCapacity(Protocol):  # pylint: disable=too-few-public-methods
     """Protocol for objects that have a capacity attribute"""
 
-    capacity: float
+    capacity: Decimal
     """Maximum number of items the bucket can hold i.e. number of requests that can be processed at once"""
 
 
@@ -24,7 +25,7 @@ class SyncRateLimit(Protocol):
 
     def __init__(self, config: BucketConfig) -> None: ...
 
-    def acquire(self, amount: float = 1) -> None:
+    def acquire(self, amount: Decimal = Decimal(1)) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available
 
         Args:
@@ -60,7 +61,7 @@ class AsyncRateLimit(Protocol):
 
     def __init__(self, config: BucketConfig, max_concurrent: int | None = None) -> None: ...
 
-    async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
+    async def acquire(self, amount: Decimal = Decimal(1), timeout: float | None = None) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available
 
         Args:
