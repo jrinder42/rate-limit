@@ -13,7 +13,47 @@ P = ParamSpec("P")  # parameters
 R = TypeVar("R")  # return type
 
 
-def validate_amount(rate_limiter: HasCapacity, amount: float) -> None:
+def ensure_decimal_amount[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+    """Decorator to ensure that the 'amount' argument is of type Decimal
+
+    Args:
+        func: The function to decorate
+
+    Returns:
+        A decorated function that ensures 'amount' is a Decimal
+    """
+
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        """Wrapper function to ensure 'amount' is a Decimal
+
+        Args:
+            *args: Positional arguments to the function
+            **kwargs: Keyword arguments to the function
+
+        Returns:
+            The result of the decorated function
+
+        Raises:
+            TypeError: If 'amount' is not of type int, float, or Decimal
+        """
+        sig = inspect.signature(func)
+        bound = sig.bind(*args, **kwargs)
+        bound.apply_defaults()
+        if "amount" in bound.arguments:
+            amt = bound.arguments["amount"]
+            if not isinstance(amt, (int, float, Decimal)):  # noqa: UP038
+                raise TypeError(f"amount must be of type int, float, or Decimal, got {type(amt)}")
+            if isinstance(amt, Decimal):
+                bound.arguments["amount"] = Decimal(amt)
+
+        return func(*bound.args, **bound.kwargs)
+
+    return wrapper
+
+
+@ensure_decimal_amount
+def validate_amount(rate_limiter: HasCapacity, amount: Decimal) -> None:
     """Validate the requested amount for acquire
 
     Args:
@@ -28,28 +68,3 @@ def validate_amount(rate_limiter: HasCapacity, amount: float) -> None:
 
     if amount < 0:
         raise ValueError(f"Cannot acquire less than 0 amount with amount: {amount}")
-
-
-def ensure_decimal_amount[**P, R](func: Callable[P, R]) -> Callable[P, R]:
-    """Decorator to ensure that the 'amount' argument is of type Decimal
-
-    Args:
-        func: The function to decorate
-
-    Returns:
-        A decorated function that ensures 'amount' is a Decimal
-    """
-
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        sig = inspect.signature(func)
-        bound = sig.bind(*args, **kwargs)
-        bound.apply_defaults()
-        if "amount" in bound.arguments:
-            amt = bound.arguments["amount"]
-            if not isinstance(amt, Decimal):
-                bound.arguments["amount"] = Decimal(amt)
-
-        return func(*bound.args, **bound.kwargs)
-
-    return wrapper
