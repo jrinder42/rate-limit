@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import pytest
@@ -28,6 +29,19 @@ def bucket_cls_capacity(request: pytest.FixtureRequest, bucket_config: BucketCon
 def bucket_cls(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> Any:
     """Fixture that provides bucket instances with capacity=2, seconds=0.2 for general tests"""
     return request.param(bucket_config)  # like AsyncLeakyBucket(BucketConfig(...))
+
+
+@pytest.mark.parametrize(
+    "bucket_cls", [AsyncLeakyBucket, AsyncTokenBucket, AsyncLeakyBucketGCRA, AsyncVirtualSchedulingGCRA]
+)
+def test_initialization_default(bucket_cls: type[AsyncLeakyBucket]) -> None:
+    """Test bucket initialization with default config"""
+    default_bucket = bucket_cls()
+
+    assert default_bucket.capacity == 10
+    assert default_bucket.seconds == 1
+    assert isinstance(default_bucket._lock, asyncio.Lock)  # pylint: disable=protected-access
+    assert default_bucket.max_concurrent is None
 
 
 # Capacity tests

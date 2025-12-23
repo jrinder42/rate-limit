@@ -27,6 +27,17 @@ def bucket_cls(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> A
     return request.param(bucket_config)  # like AsyncLeakyBucket(BucketConfig(...))
 
 
+@pytest.mark.parametrize(
+    "bucket_cls", [SyncLeakyBucket, SyncTokenBucket, SyncLeakyBucketGCRA, SyncVirtualSchedulingGCRA]
+)
+def test_initialization_default(bucket_cls: type[SyncLeakyBucket]) -> None:
+    """Test bucket initialization with default config"""
+    default_bucket = bucket_cls()
+
+    assert default_bucket.capacity == 10
+    assert default_bucket.seconds == 1
+
+
 # Capacity tests
 # note: this should really be a private method and not called directly
 
