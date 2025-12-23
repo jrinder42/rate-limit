@@ -19,3 +19,4 @@ disable=
     redefined-outer-name,
     no-member,
     missing-module-docstring,
+    protected-access,
