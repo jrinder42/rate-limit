@@ -4,9 +4,8 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from limitor import rate_limit
-from limitor.configs import Capacity
 from limitor.base import SyncRateLimit
-from limitor.configs import BucketConfig
+from limitor.configs import BucketConfig, Capacity
 from limitor.generic_cell_rate.core import (
     SyncLeakyBucketGCRA,
     SyncVirtualSchedulingGCRA,
@@ -24,10 +23,11 @@ def bucket_cls(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> A
 
 # test amount
 class TestAmountValidation:
+    """Tests for amount validation in the `acquire` method of sync bucket implementations"""
 
     @patch("limitor.utils.validate_amount", side_effect=ValueError("Cannot acquire more than the bucket's capacity: 2"))
     def test_acquire_rejects_amount_greater_than_capacity(
-        self, mocked_validate_amount, bucket_cls: SyncRateLimit
+        self, mocked_validate_amount: MagicMock, bucket_cls: SyncRateLimit
     ) -> None:
         """Verify that requesting more than the configured capacity raises ValueError"""
         with pytest.raises(ValueError, match=r"Cannot acquire more than the bucket's capacity: 2"):
@@ -36,7 +36,9 @@ class TestAmountValidation:
         mocked_validate_amount.assert_not_called()
 
     @patch("limitor.utils.validate_amount", side_effect=ValueError("Cannot acquire less than 0 amount with amount: -1"))
-    def test_acquire_rejects_amount_less_than_zero(self, mocked_validate_amount, bucket_cls: SyncRateLimit) -> None:
+    def test_acquire_rejects_amount_less_than_zero(
+        self, mocked_validate_amount: MagicMock, bucket_cls: SyncRateLimit
+    ) -> None:
         """Verify that requesting a negative amount raises ValueError"""
         with pytest.raises(ValueError, match=r"Cannot acquire less than 0 amount with amount: -1"):
             bucket_cls.acquire(-1)
@@ -47,7 +49,11 @@ class TestAmountValidation:
     @patch("time.sleep")
     @patch("time.monotonic", side_effect=[0, 0, 0, 0, 0.1])
     def test_acquire_amount_single_sleep_non_grca(
-        self, mocked_monotonic, mocked_sleep, bucket_config: BucketConfig, bucket_cls: type[SyncRateLimit]
+        self,
+        mocked_monotonic: MagicMock,
+        mocked_sleep: MagicMock,
+        bucket_config: BucketConfig,
+        bucket_cls: type[SyncRateLimit],
     ) -> None:
         """Test if a single request performs correctly
 
@@ -90,21 +96,35 @@ class TestAmountValidation:
     @pytest.mark.parametrize("bucket_cls", [SyncLeakyBucket, SyncTokenBucket])
     @patch("time.sleep")
     @patch("time.monotonic")
-    def test_acquire_amount_multiple_same(self, mocked_monotonic, mocked_sleep,
-                                             bucket_config: BucketConfig, bucket_cls: type[SyncRateLimit]) -> None:
+    def test_acquire_amount_multiple_same(
+        self,
+        mocked_monotonic: MagicMock,
+        mocked_sleep: MagicMock,
+        bucket_config: BucketConfig,
+        bucket_cls: type[SyncRateLimit],
+    ) -> None:
+        """Test if multiple requests of the same amount perform correctly"""
         bucket = bucket_cls(bucket_config=bucket_config)
 
         with patch.object(bucket, "capacity_info") as mocked_capacity_info:
             mocked_capacity_info.side_effect = [
                 Capacity(has_capacity=True, needed_capacity=-1),  # needed = 0 + 1 - 2 = -1 (outer)
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (outer)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (inner)
             ]
 
@@ -131,21 +151,38 @@ class TestAmountValidation:
     @pytest.mark.parametrize("bucket_cls", [SyncLeakyBucket, SyncTokenBucket])
     @patch("time.sleep")
     @patch("time.monotonic")
-    def test_acquire_amount_variable_amount_multiple(self, mocked_monotonic, mocked_sleep, bucket_config: BucketConfig, bucket_cls: type[SyncRateLimit]) -> None:
+    def test_acquire_amount_variable_amount_multiple(
+        self,
+        mocked_monotonic: MagicMock,
+        mocked_sleep: MagicMock,
+        bucket_config: BucketConfig,
+        bucket_cls: type[SyncRateLimit],
+    ) -> None:
+        """Test if multiple requests of variable amounts perform correctly"""
         bucket = bucket_cls(bucket_config=bucket_config)
 
         with patch.object(bucket, "capacity_info") as mocked_capacity_info:
             mocked_capacity_info.side_effect = [
                 Capacity(has_capacity=True, needed_capacity=-1),  # needed = 0 + 1 - 2 = -1 (outer)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 1 + 2 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 1 + 2 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 0 + 2 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 1 + 2 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 1 + 2 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 0 + 2 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 2 + 1 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 1 + 1 - 2 = 0 (inner)
-                Capacity(has_capacity=False, needed_capacity=1),  # needed = 1 + 2 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
+                Capacity(
+                    has_capacity=False, needed_capacity=1
+                ),  # needed = 1 + 2 - 2 = 1 (outer) --> wait = 1 / (2 / 0.2) = 0.1s
                 Capacity(has_capacity=True, needed_capacity=0),  # needed = 0 + 2 - 2 = 0 (inner)
             ]
 
@@ -164,15 +201,17 @@ class TestAmountValidation:
                     call(pytest.approx(0.1, abs=1e-3)),
                     call(pytest.approx(0.1, abs=1e-3)),
                     call(pytest.approx(0.1, abs=1e-3)),
-                    call(pytest.approx(0.1, abs=1e-3))
+                    call(pytest.approx(0.1, abs=1e-3)),
                 ],
                 any_order=False,
             )
             assert value_list == [1, 2, 1, 2, 1, 2]  # assert order is correct
 
 
-def test_decorator_constructs_bucket_and_uses_context_manager_calls():
-    """Verify the synchronous `rate_limit` decorator constructs the bucket once
+def test_decorator_constructs_bucket_and_uses_context_manager_calls() -> None:
+    """Decorator should construct bucket once and call context-manager methods
+
+    Verify the synchronous `rate_limit` decorator constructs the bucket once
     at decoration time, and that the created bucket's context-manager methods
     are invoked on each wrapped-function call.
     """
@@ -186,7 +225,7 @@ def test_decorator_constructs_bucket_and_uses_context_manager_calls():
 
     # technically is also a context manager
     @rate_limit(capacity=3, seconds=1, bucket_cls=mocked_cls)
-    def dummy(x):
+    def dummy(x: int) -> int:
         return x + 2
 
     # The decorator should have constructed the bucket exactly once at definition time
@@ -209,8 +248,10 @@ def test_decorator_constructs_bucket_and_uses_context_manager_calls():
     assert mocked_bucket.__exit__.call_count == 2
 
 
-def test_context_manager_calls_acquire_unit(bucket_cls: SyncRateLimit) -> None:
-    """Explicit unit test for the context manager behavior: patch the instance's
+def test_context_manager_calls_acquire_unit(bucket_cls: SyncRateLimit, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Context manager should call `acquire` on enter and return self
+
+    Explicit unit test for the context manager behavior: patch the instance's
     `acquire` method and verify it's called each time the context manager is used.
     This mirrors the integration test but isolates the acquire behavior via mocking.
     """
@@ -221,7 +262,7 @@ def test_context_manager_calls_acquire_unit(bucket_cls: SyncRateLimit) -> None:
         recorded_amounts.append(amount)
 
     mocked_acquire = MagicMock(side_effect=_record)
-    bucket_cls.acquire = mocked_acquire
+    monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
 
     value_list = []
     for value in range(6):
