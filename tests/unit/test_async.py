@@ -189,9 +189,7 @@ class TestAsyncFeatures:
     """Tests for async-specific features in async bucket implementations"""
 
     @patch("asyncio.wait_for", new_callable=AsyncMock)
-    async def test_acquire_uses_timeout_success(
-        self, mocked_wait_for: AsyncMock, bucket_config: BucketConfig, bucket_cls: AsyncRateLimit
-    ) -> None:
+    async def test_acquire_uses_timeout_success(self, mocked_wait_for: AsyncMock, bucket_cls: AsyncRateLimit) -> None:
         """Test that acquire uses asyncio.wait_for when timeout is provided"""
         await bucket_cls.acquire(amount=1, timeout=5.0)
 
@@ -203,9 +201,7 @@ class TestAsyncFeatures:
         args[0].close()
 
     @patch("asyncio.wait_for", side_effect=asyncio.TimeoutError)
-    async def test_acquire_timeout_raises_error(
-        self, mocked_wait_for: MagicMock, bucket_config: BucketConfig, bucket_cls: AsyncRateLimit
-    ) -> None:
+    async def test_acquire_timeout_raises_error(self, mocked_wait_for: MagicMock, bucket_cls: AsyncRateLimit) -> None:
         """Test that acquire raises TimeoutError when asyncio.wait_for times out"""
         with pytest.raises(TimeoutError) as exc_info:
             await bucket_cls.acquire(amount=1, timeout=0.1)
@@ -308,6 +304,7 @@ class TestAsyncFeatures:
         mock_locked.__aenter__.assert_called_once()
         mock_locked.__aexit__.assert_called_once()
         mocked_monotonic.assert_called_once()
+        mocked_sleep.assert_not_called()
 
     @patch("asyncio.get_event_loop")
     @patch("asyncio.Queue.put", new_callable=AsyncMock)
