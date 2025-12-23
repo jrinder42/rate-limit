@@ -29,7 +29,7 @@ class SyncVirtualSchedulingGCRA:
         https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
     """
 
-    def __init__(self, bucket_config: BucketConfig | None):
+    def __init__(self, bucket_config: BucketConfig | None = None):
         # import config and set attributes
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
@@ -98,7 +98,7 @@ class SyncLeakyBucketGCRA:
         https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
     """
 
-    def __init__(self, bucket_config: BucketConfig | None):
+    def __init__(self, bucket_config: BucketConfig | None = None):
         # import config and set attributes
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
@@ -176,7 +176,7 @@ class AsyncVirtualSchedulingGCRA:
         https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
     """
 
-    def __init__(self, bucket_config: BucketConfig | None, max_concurrent: int | None = None):
+    def __init__(self, bucket_config: BucketConfig | None = None, max_concurrent: int | None = None):
         # import config and set attributes
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
@@ -288,7 +288,7 @@ class AsyncLeakyBucketGCRA:
         https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
     """
 
-    def __init__(self, bucket_config: BucketConfig | None, max_concurrent: int | None = None):
+    def __init__(self, bucket_config: BucketConfig | None = None, max_concurrent: int | None = None):
         # import config and set attributes
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
