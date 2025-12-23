@@ -19,10 +19,10 @@ class SyncRateLimit(Protocol):
     """Synchronous Rate Limit Protocol
 
     Args:
-        config: Configuration for the rate limit
+        bucket_config: Configuration for the rate limit
     """
 
-    def __init__(self, config: BucketConfig) -> None: ...
+    def __init__(self, bucket_config: BucketConfig) -> None: ...
 
     def acquire(self, amount: float = 1) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available
@@ -54,11 +54,11 @@ class AsyncRateLimit(Protocol):
     """Asynchronous Rate Limit Protocol
 
     Args:
-        config: Configuration for the rate limit
+        bucket_config: Configuration for the rate limit
         max_concurrent: Maximum number of concurrent requests allowed to acquire capacity
     """
 
-    def __init__(self, config: BucketConfig, max_concurrent: int | None = None) -> None: ...
+    def __init__(self, bucket_config: BucketConfig, max_concurrent: int | None = None) -> None: ...
 
     async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available

@@ -21,7 +21,7 @@ class SyncLeakyBucket:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, bucket_config: BucketConfig | None):
+    def __init__(self, bucket_config: BucketConfig | None = None):
         # import config and set attributes
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
