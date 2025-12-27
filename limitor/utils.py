@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import inspect
-from collections.abc import Callable
-from decimal import Decimal
-from functools import wraps
 from typing import ParamSpec, TypeVar
 
 from limitor.base import HasCapacity
@@ -28,28 +24,3 @@ def validate_amount(rate_limiter: HasCapacity, amount: float) -> None:
 
     if amount < 0:
         raise ValueError(f"Cannot acquire less than 0 amount with amount: {amount}")
-
-
-def ensure_decimal_amount[**P, R](func: Callable[P, R]) -> Callable[P, R]:
-    """Decorator to ensure that the 'amount' argument is of type Decimal
-
-    Args:
-        func: The function to decorate
-
-    Returns:
-        A decorated function that ensures 'amount' is a Decimal
-    """
-
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        sig = inspect.signature(func)
-        bound = sig.bind(*args, **kwargs)
-        bound.apply_defaults()
-        if "amount" in bound.arguments:
-            amt = bound.arguments["amount"]
-            if not isinstance(amt, Decimal):
-                bound.arguments["amount"] = Decimal(amt)
-
-        return func(*bound.args, **bound.kwargs)
-
-    return wrapper

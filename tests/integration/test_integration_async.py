@@ -149,6 +149,17 @@ class TestAmountValidation:
 # Test the more complicated cases involving the rate_limit decorator and context manager
 
 
+@pytest.mark.asyncio
+async def test_rate_limit_decorator_default_usage() -> None:
+    """Test usage of @async_rate_limit without parentheses"""
+
+    @async_rate_limit
+    async def dummy(x: int) -> int:
+        return x + 2
+
+    assert await dummy(3) == 5
+
+
 # decorator tests
 @pytest.mark.parametrize(
     "bucket_cls", [AsyncLeakyBucket, AsyncTokenBucket, AsyncLeakyBucketGCRA, AsyncVirtualSchedulingGCRA]
