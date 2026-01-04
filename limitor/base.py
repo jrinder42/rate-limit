@@ -39,6 +39,7 @@ class SyncRateLimit(Protocol):
         Returns:
             An instance of the rate limit context manager
         """
+        ...
 
     def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """Exit the context manager, releasing any resources if necessary
@@ -76,6 +77,7 @@ class AsyncRateLimit(Protocol):
         Returns:
             An instance of the rate limit context manager
         """
+        ...
 
     async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """Exit the context manager, releasing any resources if necessary
