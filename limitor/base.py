@@ -39,7 +39,7 @@ class SyncRateLimit(Protocol):
         Returns:
             An instance of the rate limit context manager
         """
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """Exit the context manager, releasing any resources if necessary
@@ -77,7 +77,7 @@ class AsyncRateLimit(Protocol):
         Returns:
             An instance of the rate limit context manager
         """
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """Exit the context manager, releasing any resources if necessary
