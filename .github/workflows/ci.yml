@@ -14,12 +14,14 @@ jobs:
     strategy:
       matrix:
         #os: [macos-latest, ubuntu-latest]
-        os: [ubuntu-latest]  # Temporarily disabled macOS due to flaky wall clock for integration tests
+        os: [ubuntu-latest] # Temporarily disabled macOS due to flaky wall clock for integration tests
         python-version: ["3.12"]
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # downloads history to compare against the base branch (main), not just the latest commit
 
       - name: Install homebrew
         run: |
@@ -48,13 +50,42 @@ jobs:
         run: |
           uv sync
 
-      - name: Run code formatting
-        run: |
-          just format
+      # This technically is not needed in a CI pipeline as the linting step should fail fast if something is wrong
+      #- name: Run code formatting
+      #  run: |
+      #    just format
 
       - name: Run linting
+        shell: bash
         run: |
-          just lint
+          # Identify changed Python files compared to the target branch
+          # --diff-filter=AMR: Added, Modified, Renamed (excludes Deleted)
+          # -z: Null-terminated output (handles spaces in filenames safely)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=AMR -z origin/${{ github.base_ref }} HEAD -- '*.py')
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Detected changes in Python files. Running linters..."
+
+            # We use 'xargs -0 -r' to handle the file list safely.
+
+            echo "Running Black"
+            echo -n "$CHANGED_FILES" | xargs -0 -r uv run black --check --diff --quiet
+
+            echo "Running Isort"
+            echo -n "$CHANGED_FILES" | xargs -0 -r uv run isort --profile black --check-only --diff
+
+            echo "Running Pylint"
+            echo -n "$CHANGED_FILES" | xargs -0 -r uv run pylint
+
+            echo " Running Flake8"
+            echo -n "$CHANGED_FILES" | xargs -0 -r uv run flake8 --toml-config=pyproject.toml
+
+            echo "Running Ruff"
+            echo -n "$CHANGED_FILES" | xargs -0 -r uv run ruff check
+
+          else
+            echo "No Python files changed in this PR. Skipping linting."
+          fi
 
       - name: Run type checking
         run: |
