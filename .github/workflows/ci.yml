@@ -11,6 +11,10 @@ on:
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    # permission changes required for `gh cache delete`
+    permissions:
+      actions: write
+      contents: read
     strategy:
       matrix:
         #os: [macos-latest, ubuntu-latest]
