@@ -62,10 +62,22 @@ jobs:
       - name: Run linting
         shell: bash
         run: |
-          # Identify changed Python files compared to the target branch
+          # Logic to define the target reference
+          if [[ -n "${{ github.base_ref }}" ]]; then
+            # If it's a PR, compare against the remote base branch
+            TARGET="origin/${{ github.base_ref }}"
+          elif [[ -n "${{ github.event.before }}" ]]; then
+            # It's a Push, compare against the previous commit SHA
+            TARGET="${{ github.event.before }}"
+          else
+            # Fallback (e.g. new branch creation), compare against parent commit
+            TARGET="HEAD~1"
+          fi
+
+          # Identify changed Python files compared to the target branch i.e. run the diff
           # --diff-filter=AMR: Added, Modified, Renamed (excludes Deleted)
           # -z: Null-terminated output (handles spaces in filenames safely)
-          CHANGED_FILES=$(git diff --name-only --diff-filter=AMR -z origin/${{ github.base_ref }} HEAD -- '*.py')
+          CHANGED_FILES=$(git diff --name-only --diff-filter=AMR -z $TARGET HEAD -- '*.py')
 
           if [ -n "$CHANGED_FILES" ]; then
             echo "Detected changes in Python files. Running linters..."
