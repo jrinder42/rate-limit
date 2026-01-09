@@ -9,7 +9,6 @@ description = "Rate limiting package"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "pytest-asyncio>=1.2.0",
 ]
 authors = [
     {name = "Jordan Rinder", email = "jordan.rinder@gmail.com"}
@@ -39,6 +38,7 @@ testing = [
     "pytest>=8.2",
     "pytest-asyncio",
     "coverage",
+    "pytest-testmon",
 ]
 ci = [
     "black",

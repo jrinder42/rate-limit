@@ -1,10 +1,10 @@
-set dotenv-load
+set dotenv-load := true
 
 # CHANGE HERE
+
 export package_name := 'limitor/'
 export test_folder := 'tests/'
 export sql_folder := 'sql/'
-
 export test_files := `git ls-files --exclude-standard {{test_folder}}`
 export all_package_files := `git ls-files --exclude-standard {{package_name}}`
 export all_files := `git ls-files --exclude-standard`
@@ -34,7 +34,7 @@ install-uv:
 
 # install development dependencies
 develop version="3.12": clean-pyc install-uv
-    @uv sync --python {{version}}
+    @uv sync --python {{ version }}
 
 # linting
 lint:
@@ -65,6 +65,7 @@ format:
     # uv run ruff format
 
 # need to do this as mypy as issues with files of the same name (conftest.py)
+
 # type checking
 type-check:
     uv run mypy .
@@ -72,6 +73,7 @@ type-check:
     uv run mypy tests/integration/conftest.py
 
 # testing
+
 # handling errors
 [private]
 handle-error:
@@ -80,9 +82,10 @@ handle-error:
     @echo "Running recovery steps completed."
 
 # -Wignore supresses warnings
+
 # run tests without error handling
 unsafe-test:
-    @uv run pytest -Wignore $test_files
+    @uv run pytest -Wignore $test_files --testmon
 
 # run tests
 test:

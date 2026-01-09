@@ -11,6 +11,10 @@ on:
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    # permission changes required for `gh cache delete`
+    permissions:
+      actions: write
+      contents: read
     strategy:
       matrix:
         #os: [macos-latest, ubuntu-latest]
@@ -58,10 +62,22 @@ jobs:
       - name: Run linting
         shell: bash
         run: |
-          # Identify changed Python files compared to the target branch
+          # Logic to define the target reference
+          if [[ -n "${{ github.base_ref }}" ]]; then
+            # If it's a PR, compare against the remote base branch
+            TARGET="origin/${{ github.base_ref }}"
+          elif [[ -n "${{ github.event.before }}" ]]; then
+            # It's a Push, compare against the previous commit SHA
+            TARGET="${{ github.event.before }}"
+          else
+            # Fallback (e.g. new branch creation), compare against parent commit
+            TARGET="HEAD~1"
+          fi
+
+          # Identify changed Python files compared to the target branch i.e. run the diff
           # --diff-filter=AMR: Added, Modified, Renamed (excludes Deleted)
           # -z: Null-terminated output (handles spaces in filenames safely)
-          CHANGED_FILES=$(git diff --name-only --diff-filter=AMR -z origin/${{ github.base_ref }} HEAD -- '*.py')
+          CHANGED_FILES=$(git diff --name-only --diff-filter=AMR -z $TARGET HEAD -- '*.py')
 
           if [ -n "$CHANGED_FILES" ]; then
             echo "Detected changes in Python files. Running linters..."
@@ -91,9 +107,39 @@ jobs:
         run: |
           just type-check
 
+      # Testing with a cache
+
+      # Restore the testmon db from the previous run
+      - name: Restore Testmon DB
+        uses: actions/cache/restore@v5
+        id: restore-testmon
+        with:
+          path: .testmondata
+          key: testmon-db-main
+          restore-keys: testmon-db-main
+
+      # Run tests: if .testmondata exists, pytest uses it. File is update locally
       - name: Run tests
         run: |
-          just test
+          echo "Running tests with pytest-testmon..."
+          # If no cache found (first run), this runs ALL tests.
+          uv run pytest tests/ --testmon
+
+      # Delete the old cache if it exists
+      - name: Delete Old Cache
+        if: steps.restore-testmon.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh cache delete testmon-db-main || true
+
+      # Finally, save the new cache even if some tests fail
+      - name: Save Testmon DB
+        uses: actions/cache/save@v5
+        if: always()
+        with:
+          path: .testmondata
+          key: testmon-db-main
 
       - name: Run code coverage for Codecov
         run: |
