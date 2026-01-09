@@ -107,9 +107,39 @@ jobs:
         run: |
           just type-check
 
+      # Testing with a cache
+
+      # Restore the testmon db from the previous run
+      - name: Restore Testmon DB
+        uses: actions/cache/restore@v5
+        id: restore-testmon
+        with:
+          path: .testmondata
+          key: testmon-db-main
+          restore-keys: testmon-db-main
+
+      # Run tests: if .testmondata exists, pytest uses it. File is update locally
       - name: Run tests
         run: |
-          just test
+          echo "Running tests with pytest-testmon..."
+          # If no cache found (first run), this runs ALL tests.
+          uv run pytest tests/ --testmon
+
+      # Delete the old cache if it exists
+      - name: Delete Old Cache
+        if: steps.restore-testmon.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh cache delete testmon-db-main || true
+
+      # Finally, save the new cache even if some tests fail
+      - name: Save Testmon DB
+        uses: actions/cache/save@v5
+        if: always()
+        with:
+          path: .testmondata
+          key: testmon-db-main
 
       - name: Run code coverage for Codecov
         run: |
