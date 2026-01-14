@@ -2,10 +2,15 @@ import json
 import subprocess
 import sys
 import re
+import logging
+from collections import defaultdict
 import argparse
 from pathlib import Path
 from typing import Optional
 from typing_extensions import Set
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def parse_args() -> argparse.Namespace:
     """
@@ -64,10 +69,21 @@ def get_changed_lines(base_ref: str) -> dict[str, set[int]]:
 
 def find_impacted_tests(map_file: Path, changed_map: dict[str, set[int]]) -> set[str]:
     """
-    Reads the map file line-by-line and returns tests that intersect with changes.
+    Revised Logic:
+    1. Strict Mode: If changed lines are covered by specific tests, pick those tests.
+    2. Orphan Mode: If a changed line is NOT covered by ANY test (e.g. static defaults,
+       imports, constants), run ALL tests that touch that file.
     """
     tests_to_run = set()
 
+    # Data structures for the 2-pass analysis
+    # file_path -> list of (test_id, covered_lines_set)
+    file_interactions = defaultdict(list)
+
+    # file_path -> set of ALL lines covered by ANY test
+    total_file_coverage = defaultdict(set)
+
+    # We scan the map and organize it by FILE, not by TEST.
     with open(map_file, "r") as f:
         for line in f:
             try:
@@ -75,16 +91,33 @@ def find_impacted_tests(map_file: Path, changed_map: dict[str, set[int]]) -> set
                 test_id = entry["id"]
                 file_map = entry["map"]
 
-                # Check intersection for this test
                 for filepath, covered_lines in file_map.items():
+                    # Optimization: Only care about files that actually changed
                     if filepath in changed_map:
-                        touched_lines = changed_map[filepath]
-                        # Set intersection check
-                        if not touched_lines.isdisjoint(covered_lines):
-                            tests_to_run.add(test_id)
-                            break
+                        lines_set = set(covered_lines)
+                        file_interactions[filepath].append((test_id, lines_set))
+                        total_file_coverage[filepath].update(lines_set)
             except json.JSONDecodeError:
                 continue
+
+    for filepath, changed_lines in changed_map.items():
+        # Check for "Orphan Lines" (Changed lines that NO test claims to cover)
+        # This usually means structural changes (defaults, imports, constants)
+        # logic: orphans = changed_lines - (union of all coverage)
+        known_lines = total_file_coverage[filepath]
+        orphans = changed_lines - known_lines
+
+        if orphans:
+            # SAFETY NET: We found changes in the file that look "untested" or "static".
+            # We must assume these affect everyone. Run ALL tests for this file.
+            print(f"  [Fallback] {filepath}: Detected structural changes on lines {orphans}. Running all associated tests.")
+            for test_id, _ in file_interactions[filepath]:
+                tests_to_run.add(test_id)
+        else:
+            # STRICT MODE: All changed lines are known. Only run tests that strictly hit them.
+            for test_id, covered_lines in file_interactions[filepath]:
+                if not changed_lines.isdisjoint(covered_lines):
+                    tests_to_run.add(test_id)
 
     return tests_to_run
 
