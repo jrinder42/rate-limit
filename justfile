@@ -85,7 +85,7 @@ handle-error:
 
 # run tests without error handling
 unsafe-test:
-    @uv run pytest -Wignore $test_files --testmon
+    @uv run pytest -Wignore $test_files
 
 # run tests
 test:
