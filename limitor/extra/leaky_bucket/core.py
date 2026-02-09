@@ -22,7 +22,7 @@ class AsyncLeakyBucket:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, bucket_config: BucketConfig | None = None, maxsize: int = 0):
+    def __init__(self, bucket_config: BucketConfig | None = None, max_size: int = 0):
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
@@ -30,7 +30,7 @@ class AsyncLeakyBucket:
         self.leak_rate = self.capacity / self.seconds
         self._bucket_level = 0.0
         self._last_leak = time.monotonic()
-        self._queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=maxsize)
+        self._queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=max_size)
         # Do NOT create background tasks at import/instantiation time because there
         # may be no running event loop (e.g. when pytest constructs fixtures).
         # Create the worker lazily on first use (inside an async context).
