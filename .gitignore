@@ -168,3 +168,4 @@ cython_debug/
 exploration/
 notebooks/
 *_version.py
+scripts/
