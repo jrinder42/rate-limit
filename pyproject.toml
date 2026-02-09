@@ -38,7 +38,6 @@ testing = [
     "pytest>=8.2",
     "pytest-asyncio",
     "coverage",
-    "pytest-testmon",
 ]
 ci = [
     "black",
