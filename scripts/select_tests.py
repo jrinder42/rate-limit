@@ -7,7 +7,7 @@ from collections import defaultdict
 import argparse
 from pathlib import Path
 from typing import Optional
-from typing_extensions import Set
+import tokenize
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -67,6 +67,41 @@ def get_changed_lines(base_ref: str) -> dict[str, set[int]]:
 
     return changes
 
+def get_ignorable_lines(filepath: str) -> set[int]:
+    """
+    Uses Python's tokenizer to identify comments, docstrings, and empty lines.
+    Returns a set of line numbers that should be ignored.
+    """
+    ignorable = set()
+    path = Path(filepath)
+    if not path.exists():
+        return ignorable
+
+    try:
+        # 1. Tokenize to find Comments and Strings (Docstrings)
+        with path.open('rb') as f:
+            tokens = tokenize.tokenize(f.readline)
+            for token in tokens:
+                if token.type == tokenize.COMMENT:
+                    ignorable.add(token.start[0])
+                # Heuristic: If a line is JUST a string, it's likely a docstring
+                if token.type == tokenize.STRING:
+                    for line_num in range(token.start[0], token.end[0] + 1):
+                        ignorable.add(line_num)
+
+        # 2. Filter purely empty lines (tokenizer sometimes skips these)
+        with path.open('r') as f:
+            for i, line in enumerate(f, 1):
+                if not line.strip():
+                    ignorable.add(i)
+
+    except (tokenize.TokenError, IndentationError):
+        # If the file is syntactically broken, we can't judge it.
+        # Assume everything is code (safe fallback).
+        pass
+
+    return ignorable
+
 def find_impacted_tests(map_file: Path, changed_map: dict[str, set[int]]) -> set[str]:
     """
     Revised Logic:
@@ -100,12 +135,19 @@ def find_impacted_tests(map_file: Path, changed_map: dict[str, set[int]]) -> set
             except json.JSONDecodeError:
                 continue
 
-    for filepath, changed_lines in changed_map.items():
+    for filepath, raw_changed_lines in changed_map.items():
+        # Step A: Remove Noise (Comments/Docstrings)
+        ignorable = get_ignorable_lines(filepath)
+        real_code_changes = raw_changed_lines - ignorable
+
+        if not real_code_changes:
+            continue # Only comments changed, skip file.
+
         # Check for "Orphan Lines" (Changed lines that NO test claims to cover)
         # This usually means structural changes (defaults, imports, constants)
         # logic: orphans = changed_lines - (union of all coverage)
         known_lines = total_file_coverage[filepath]
-        orphans = changed_lines - known_lines
+        orphans = real_code_changes - known_lines
 
         if orphans:
             # SAFETY NET: We found changes in the file that look "untested" or "static".
@@ -116,7 +158,7 @@ def find_impacted_tests(map_file: Path, changed_map: dict[str, set[int]]) -> set
         else:
             # STRICT MODE: All changed lines are known. Only run tests that strictly hit them.
             for test_id, covered_lines in file_interactions[filepath]:
-                if not changed_lines.isdisjoint(covered_lines):
+                if not real_code_changes.isdisjoint(covered_lines):
                     tests_to_run.add(test_id)
 
     return tests_to_run
