@@ -8,6 +8,7 @@ References:
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from contextlib import nullcontext
 from types import TracebackType
@@ -44,6 +45,9 @@ class SyncVirtualSchedulingGCRA:
         # theoretical arrival time (TAT)
         self._tat: float | None = None
 
+        # thread-safe
+        self._lock = threading.Lock()
+
     def acquire(self, amount: float = 1) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
 
@@ -52,18 +56,19 @@ class SyncVirtualSchedulingGCRA:
         """
         validate_amount(self, amount=amount)
 
-        t_a = time.monotonic()
-        if self._tat is None:
-            # first cell
-            self._tat = t_a
+        with self._lock:
+            t_a = time.monotonic()
+            if self._tat is None:
+                # first cell
+                self._tat = t_a
 
-        # note: we can also make `self.capacity - amount` as class param = burst i.e. independent of capacity
-        tau = self.T * (self.capacity - amount)
-        if t_a < self._tat - tau:
-            delay = (self._tat - tau) - t_a
-            time.sleep(delay)
+            # note: we can also make `self.capacity - amount` as class param = burst i.e. independent of capacity
+            tau = self.T * (self.capacity - amount)
+            if t_a < self._tat - tau:
+                delay = (self._tat - tau) - t_a
+                time.sleep(delay)
 
-        self._tat = max(t_a, self._tat) + amount * self.T
+            self._tat = max(t_a, self._tat) + amount * self.T
 
     def __enter__(self) -> SyncVirtualSchedulingGCRA:
         """Enter the context manager, acquiring resources if necessary
@@ -113,6 +118,9 @@ class SyncLeakyBucketGCRA:
         self._bucket_level = 0.0  # current volume in the bucket
         self._last_leak: float | None = None  # same as last conforming time or LCT
 
+        # thread-safe
+        self._lock = threading.Lock()
+
     def acquire(self, amount: float = 1) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
 
@@ -121,26 +129,27 @@ class SyncLeakyBucketGCRA:
         """
         validate_amount(self, amount=amount)
 
-        t_a = time.monotonic()
-        if self._last_leak is None:
-            # first cell
-            self._bucket_level = 0
+        with self._lock:
+            t_a = time.monotonic()
+            if self._last_leak is None:
+                # first cell
+                self._bucket_level = 0
+                self._last_leak = t_a
+
+            elapsed = t_a - self._last_leak
+            self._bucket_level = self._bucket_level - elapsed
+
+            # note: we can also make `self.capacity - amount` as class param = burst i.e. independent of capacity
+            tau = self.T * (self.capacity - amount)
+            if self._bucket_level > tau:
+                delay = self._bucket_level - tau
+                time.sleep(delay)
+
+                self._bucket_level = self._bucket_level - delay
+                t_a += delay
+
+            self._bucket_level = max(0.0, self._bucket_level) + amount * self.T
             self._last_leak = t_a
-
-        elapsed = t_a - self._last_leak
-        self._bucket_level = self._bucket_level - elapsed
-
-        # note: we can also make `self.capacity - amount` as class param = burst i.e. independent of capacity
-        tau = self.T * (self.capacity - amount)
-        if self._bucket_level > tau:
-            delay = self._bucket_level - tau
-            time.sleep(delay)
-
-            self._bucket_level = self._bucket_level - delay
-            t_a += delay
-
-        self._bucket_level = max(0.0, self._bucket_level) + amount * self.T
-        self._last_leak = t_a
 
     def __enter__(self) -> SyncLeakyBucketGCRA:
         """Enter the context manager, acquiring resources if necessary
