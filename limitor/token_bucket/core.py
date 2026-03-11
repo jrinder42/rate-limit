@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from contextlib import nullcontext
 from types import TracebackType
@@ -31,6 +32,9 @@ class SyncTokenBucket:
 
         self._bucket_level = self.capacity  # current volume of tokens in the bucket
         self._last_fill = time.monotonic()  # last refill time
+
+        # thread-safe
+        self._lock = threading.Lock()
 
     def _fill(self) -> None:
         """Fill the bucket based on the elapsed time since the last fill"""
@@ -67,18 +71,19 @@ class SyncTokenBucket:
         """
         validate_amount(self, amount=amount)
 
-        capacity_info = self.capacity_info(amount=amount)
-        while not capacity_info.has_capacity:
-            needed = capacity_info.needed_capacity
-            # amount we need to wait to leak
-            # needed is guaranteed to be positive here, so we can use it directly
-            wait_time = needed / self.fill_rate
-            if wait_time > 0:
-                time.sleep(wait_time)
-
+        with self._lock:
             capacity_info = self.capacity_info(amount=amount)
+            while not capacity_info.has_capacity:
+                needed = capacity_info.needed_capacity
+                # amount we need to wait to leak
+                # needed is guaranteed to be positive here, so we can use it directly
+                wait_time = needed / self.fill_rate
+                if wait_time > 0:
+                    time.sleep(wait_time)
 
-        self._bucket_level -= amount
+                capacity_info = self.capacity_info(amount=amount)
+
+            self._bucket_level -= amount
 
     def __enter__(self) -> SyncTokenBucket:
         """Enter the context manager, acquiring resources if necessary"""
