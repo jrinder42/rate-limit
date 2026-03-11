@@ -77,31 +77,32 @@ jobs:
           # Identify changed Python files compared to the target branch i.e. run the diff
           # --diff-filter=AMR: Added, Modified, Renamed (excludes Deleted)
           # -z: Null-terminated output (handles spaces in filenames safely)
-          CHANGED_FILES=$(git diff --name-only --diff-filter=AMR -z $TARGET HEAD -- '*.py')
+          git diff --name-only --diff-filter=AMR -z $TARGET HEAD -- '*.py' > .changed_files
 
-          if [ -n "$CHANGED_FILES" ]; then
+          if [ -s .changed_files ]; then
             echo "Detected changes in Python files. Running linters..."
 
             # We use 'xargs -0 -r' to handle the file list safely.
 
             echo "Running Black"
-            echo -n "$CHANGED_FILES" | xargs -0 -r uv run black --check --diff --quiet
+            xargs -0 -r uv run black --check --diff --quiet < .changed_files
 
             echo "Running Isort"
-            echo -n "$CHANGED_FILES" | xargs -0 -r uv run isort --profile black --check-only --diff
+            xargs -0 -r uv run isort --profile black --check-only --diff < .changed_files
 
             echo "Running Pylint"
-            echo -n "$CHANGED_FILES" | xargs -0 -r uv run pylint
+            xargs -0 -r uv run pylint < .changed_files
 
             echo " Running Flake8"
-            echo -n "$CHANGED_FILES" | xargs -0 -r uv run flake8 --toml-config=pyproject.toml
+            xargs -0 -r uv run flake8 --toml-config=pyproject.toml < .changed_files
 
             echo "Running Ruff"
-            echo -n "$CHANGED_FILES" | xargs -0 -r uv run ruff check
+            xargs -0 -r uv run ruff check < .changed_files
 
           else
             echo "No Python files changed in this PR. Skipping linting."
           fi
+          rm -f .changed_files
 
       - name: Run type checking
         run: |
