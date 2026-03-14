@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from functools import wraps
 from typing import ParamSpec, TypeVar, overload
 
 from limitor.base import AsyncRateLimit, SyncRateLimit
@@ -57,6 +58,7 @@ def rate_limit[**P, R](
     bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             with bucket:
                 return func(*args, **kwargs)
@@ -113,6 +115,7 @@ def async_rate_limit[**P, R](
     bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent)
 
     def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             async with bucket:
                 return await func(*args, **kwargs)
