@@ -87,6 +87,7 @@ uv lock --upgrade-package requests
 > This decorator assumes that the user will pass any necessary params. If you want to make these optional, see `limitor/__init__.py`
 
 ```python
+from functools import wraps
 import random
 import time
 from typing import Callable
@@ -100,6 +101,7 @@ def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRate
     bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
 
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             amount = kwargs.get("amount", 1)
             bucket.acquire(amount=amount)
@@ -126,6 +128,7 @@ for _ in range(100):
 ### With User-Specific Rate Limits + Cache
 
 ```python
+from functools import wraps
 import time
 from typing import Optional
 
@@ -151,6 +154,7 @@ def rate_limit_per_user(capacity=10, seconds=1, max_users=1000, ttl=None, bucket
     def decorator(func):
         # optional use_id. if not set, it will default to a regular global rate limiter
         # if user_id is not set, this means the max_users / ttl parameters will be ignored
+        @wraps(func)
         def wrapper(*args, user_id=None, **kwargs):
             if user_id is None:
                 bucket = global_bucket
