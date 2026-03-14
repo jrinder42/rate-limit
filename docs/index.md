@@ -37,6 +37,7 @@ LLM Token Rate Limiting
 === "Synchronous"
 
     ```python
+    from functools import wraps
     import random
     import time
     from typing import Callable
@@ -50,6 +51,8 @@ LLM Token Rate Limiting
         bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
     
         def decorator(func):
+        
+            @wraps(func)
             def wrapper(*args, **kwargs):
                 amount = kwargs.get("amount", 1)
                 bucket.acquire(amount=amount)
@@ -80,6 +83,7 @@ LLM Token Rate Limiting
 === "Asynchronous"
 
     ```python
+    from functools import wraps
     import random
     import time
     import asyncio
@@ -94,6 +98,8 @@ LLM Token Rate Limiting
         bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
     
         def decorator(func):
+        
+            @wraps(func)
             async def wrapper(*args, **kwargs):
                 amount = kwargs.get("amount", 1)
                 await bucket.acquire(amount=amount)
