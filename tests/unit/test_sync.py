@@ -277,3 +277,17 @@ def test_context_manager_calls_acquire_unit(bucket_cls: SyncRateLimit, monkeypat
 
     # Assert our logic inside the 'with' executed as expected
     assert value_list == [1, 2, 3, 4, 5, 6]
+
+
+@pytest.mark.parametrize("bucket_cls_wait", [SyncLeakyBucket, SyncTokenBucket])
+def test_acquire_wait_time_less_than_or_equal_to_zero(
+    bucket_cls_wait: type[SyncRateLimit], bucket_config: BucketConfig
+) -> None:
+    """Test the branch where wait_time <= 0 inside the acquire loop"""
+    bucket = bucket_cls_wait(bucket_config=bucket_config)
+    with patch.object(bucket, "capacity_info") as mocked_capacity_info:
+        mocked_capacity_info.side_effect = [
+            Capacity(has_capacity=False, needed_capacity=0),
+            Capacity(has_capacity=True, needed_capacity=0),
+        ]
+        bucket.acquire(1)
