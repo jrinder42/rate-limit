@@ -97,9 +97,9 @@ all: format lint type-check test
     @echo "All checks passed!"
 
 # code coverage, can also call package_name with {{package_name}}
-coverage:
+coverage branch="false":
     uv run coverage erase
-    uv run coverage run --source $package_name -m pytest -Wignore $test_files
+    uv run coverage run {{ if branch == "true" { "--branch" } else { "" } }} --source $package_name -m pytest -Wignore $test_files
     uv run coverage report -m
     uv run coverage xml
 
