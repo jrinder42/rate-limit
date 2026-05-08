@@ -242,6 +242,12 @@ class TestAsyncFeatures:
             # Check logic was called inside
             mock_logic.assert_called_once_with(1)
 
+            # Check Semaphore is reused on second call
+            await bucket.acquire(amount=1)
+            assert mocked_sem_cls.call_count == 1
+            assert mock_sem_instance.__aenter__.call_count == 2
+            assert mock_sem_instance.__aexit__.call_count == 2
+
     @pytest.mark.parametrize("bucket_cls", [AsyncLeakyBucket, AsyncTokenBucket])
     @patch("time.monotonic", return_value=0)
     @patch("asyncio.sleep", new_callable=AsyncMock)
