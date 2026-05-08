@@ -10,8 +10,9 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from contextlib import nullcontext
+from contextlib import AbstractAsyncContextManager, nullcontext
 from types import TracebackType
+from typing import Any
 
 from limitor.configs import BucketConfig
 from limitor.utils import validate_amount
@@ -202,6 +203,7 @@ class AsyncVirtualSchedulingGCRA:
 
         self.max_concurrent = max_concurrent
         self._lock = asyncio.Lock()
+        self._semaphore: asyncio.Semaphore | AbstractAsyncContextManager[Any] | None = None
 
     async def _acquire_logic(self, amount: float = 1) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
@@ -237,8 +239,10 @@ class AsyncVirtualSchedulingGCRA:
         Args:
             amount: The amount of capacity to acquire, defaults to 1
         """
-        semaphore = asyncio.Semaphore(self.max_concurrent) if self.max_concurrent else nullcontext()
-        async with semaphore:
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent) if self.max_concurrent else nullcontext()
+
+        async with self._semaphore:
             await self._acquire_logic(amount)
 
     async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
@@ -314,6 +318,7 @@ class AsyncLeakyBucketGCRA:
 
         self.max_concurrent = max_concurrent
         self._lock = asyncio.Lock()
+        self._semaphore: asyncio.Semaphore | AbstractAsyncContextManager[Any] | None = None
 
     async def _acquire_logic(self, amount: float = 1) -> None:
         """Acquire resources, blocking if necessary to conform to the rate limit
@@ -357,8 +362,10 @@ class AsyncLeakyBucketGCRA:
         Args:
             amount: The amount of capacity to acquire, defaults to 1
         """
-        semaphore = asyncio.Semaphore(self.max_concurrent) if self.max_concurrent else nullcontext()
-        async with semaphore:
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent) if self.max_concurrent else nullcontext()
+
+        async with self._semaphore:
             await self._acquire_logic(amount)
 
     async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
