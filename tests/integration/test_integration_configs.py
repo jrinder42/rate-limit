@@ -19,9 +19,14 @@ def test_bucket_config_defaults() -> None:
 
 @pytest.mark.parametrize(
     ("capacity", "seconds", "expected_message"),
-    [(-1, 10, "capacity must be at least 1"), (5, 0, "seconds must be positive and non-zero")],
+    [
+        (-1, 10, "capacity must be at least 1"),
+        (5, 0, "seconds must be positive and non-zero"),
+    ],
 )
-def test_bucket_config_invalid_parameters(capacity: float, seconds: float, expected_message: str) -> None:
+def test_bucket_config_invalid_parameters(
+    capacity: float, seconds: float, expected_message: str
+) -> None:
     """Test that BucketConfig raises ValueError for invalid parameters"""
     with pytest.raises(ValueError, match=expected_message):
         BucketConfig(capacity=capacity, seconds=seconds)
