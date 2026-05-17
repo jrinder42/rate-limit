@@ -90,7 +90,12 @@ class SyncLeakyBucket:
         self.acquire()
         return self
 
-    def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the context manager, releasing any resources if necessary"""
         return None
 
@@ -106,7 +111,11 @@ class AsyncLeakyBucket:
         This implementation is synchronous and supports bursts up to the capacity within the specified time period
     """
 
-    def __init__(self, bucket_config: BucketConfig | None = None, max_concurrent: int | None = None):
+    def __init__(
+        self,
+        bucket_config: BucketConfig | None = None,
+        max_concurrent: int | None = None,
+    ):
         config = bucket_config or BucketConfig()
         self.capacity = config.capacity
         self.seconds = config.seconds
@@ -117,7 +126,9 @@ class AsyncLeakyBucket:
 
         self.max_concurrent = max_concurrent
         self._lock = asyncio.Lock()
-        self._semaphore: asyncio.Semaphore | AbstractAsyncContextManager[Any] | None = None
+        self._semaphore: asyncio.Semaphore | AbstractAsyncContextManager[Any] | None = (
+            None
+        )
 
     def _leak(self) -> None:
         """Leak the bucket based on the elapsed time since the last leak"""
@@ -153,7 +164,9 @@ class AsyncLeakyBucket:
                 is updated correctly and that we don't have multiple requests trying to update the bucket level
                 at the same time, which could lead to an inconsistent state i.e. a race condition.
         """
-        async with self._lock:  # ensures atomicity given we can have multiple concurrent requests
+        async with (
+            self._lock
+        ):  # ensures atomicity given we can have multiple concurrent requests
             capacity_info = self.capacity_info(amount=amount)
             while not capacity_info.has_capacity:
                 needed = capacity_info.needed_capacity
@@ -174,7 +187,11 @@ class AsyncLeakyBucket:
             amount: The amount of capacity to acquire, defaults to 1
         """
         if self._semaphore is None:
-            self._semaphore = asyncio.Semaphore(self.max_concurrent) if self.max_concurrent else nullcontext()
+            self._semaphore = (
+                asyncio.Semaphore(self.max_concurrent)
+                if self.max_concurrent
+                else nullcontext()
+            )
 
         async with self._semaphore:
             await self._acquire_logic(amount)
@@ -197,7 +214,9 @@ class AsyncLeakyBucket:
             try:
                 await asyncio.wait_for(self._semaphore_acquire(amount), timeout=timeout)
             except TimeoutError as error:
-                raise TimeoutError(f"Acquire timed out after {timeout} seconds for amount={amount}") from error
+                raise TimeoutError(
+                    f"Acquire timed out after {timeout} seconds for amount={amount}"
+                ) from error
         else:
             await self._semaphore_acquire(amount)
 
@@ -206,6 +225,11 @@ class AsyncLeakyBucket:
         await self.acquire()
         return self
 
-    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the context manager, releasing any resources if necessary"""
         return None

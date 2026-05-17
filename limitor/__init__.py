@@ -99,7 +99,10 @@ def async_rate_limit[**P, R](
     seconds: float = 1,
     max_concurrent: int | None = None,
     bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
-) -> Callable[P, Awaitable[R]] | Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+) -> (
+    Callable[P, Awaitable[R]]
+    | Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]
+):
     """Decorator to apply an asynchronous leaky bucket rate limit to a function.
 
     Args:
@@ -112,7 +115,9 @@ def async_rate_limit[**P, R](
     Returns:
         A decorator that applies the rate limit to the function
     """
-    bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent)
+    bucket = bucket_cls(
+        BucketConfig(capacity=capacity, seconds=seconds), max_concurrent=max_concurrent
+    )
 
     def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @wraps(func)

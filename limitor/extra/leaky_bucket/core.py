@@ -122,7 +122,9 @@ class AsyncLeakyBucket:
             try:
                 await asyncio.wait_for(self._acquire_logic(amount), timeout=timeout)
             except TimeoutError as error:
-                raise TimeoutError(f"Acquire timed out after {timeout} seconds for amount={amount}") from error
+                raise TimeoutError(
+                    f"Acquire timed out after {timeout} seconds for amount={amount}"
+                ) from error
         else:
             await self._acquire_logic(amount)
 
@@ -156,7 +158,12 @@ class AsyncLeakyBucket:
         await self.acquire()
         return self
 
-    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the context manager, releasing any resources if necessary"""
         await self.shutdown()
         return None
