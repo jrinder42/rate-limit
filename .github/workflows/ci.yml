@@ -60,49 +60,9 @@ jobs:
       #    just format
 
       - name: Run linting
-        shell: bash
         run: |
-          # Logic to define the target reference
-          if [[ -n "${{ github.base_ref }}" ]]; then
-            # If it's a PR, compare against the remote base branch
-            TARGET="origin/${{ github.base_ref }}"
-          elif [[ -n "${{ github.event.before }}" ]]; then
-            # It's a Push, compare against the previous commit SHA
-            TARGET="${{ github.event.before }}"
-          else
-            # Fallback (e.g. new branch creation), compare against parent commit
-            TARGET="HEAD~1"
-          fi
-
-          # Identify changed Python files compared to the target branch i.e. run the diff
-          # --diff-filter=AMR: Added, Modified, Renamed (excludes Deleted)
-          # -z: Null-terminated output (handles spaces in filenames safely)
-          git diff --name-only --diff-filter=AMR -z $TARGET HEAD -- '*.py' > .changed_files
-
-          if [ -s .changed_files ]; then
-            echo "Detected changes in Python files. Running linters..."
-
-            # We use 'xargs -0 -r' to handle the file list safely.
-
-            echo "Running Black"
-            xargs -0 -r uv run black --check --diff --quiet < .changed_files
-
-            echo "Running Isort"
-            xargs -0 -r uv run isort --profile black --check-only --diff < .changed_files
-
-            echo "Running Pylint"
-            xargs -0 -r uv run pylint < .changed_files
-
-            echo " Running Flake8"
-            xargs -0 -r uv run flake8 --toml-config=pyproject.toml < .changed_files
-
-            echo "Running Ruff"
-            xargs -0 -r uv run ruff check < .changed_files
-
-          else
-            echo "No Python files changed in this PR. Skipping linting."
-          fi
-          rm -f .changed_files
+          uv run ruff check
+          just flake8
 
       - name: Run type checking
         run: |

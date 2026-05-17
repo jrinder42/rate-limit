@@ -40,12 +40,9 @@ testing = [
     "coverage",
 ]
 ci = [
-    "black",
-    "isort",
-    "mypy>=1.18.0",
     "ruff",
+    "pyrefly>=1.0.0",
     "pylint",
-    "sqlfluff",
     "pyupgrade",
     "pydoclint[flake8]",
     "flake8-pyproject",  # this is an issue with the above, actually a dep for pydoclint[flake8]
@@ -113,19 +110,27 @@ extend-ignore = [
 ]
 exclude = [
     "docs/*",
-    "tests/conftest.py"
-]
-
-[tool.mypy]
-strict = true
-exclude = [
-    "examples/",
     "tests/conftest.py",
-    "tests/integration/conftest.py",
+    "examples",
+    ".venv",
+    "archived",
+    "build",
+    "exploration",
+    "scripts"
 ]
-exclude_gitignore = true
 
 [tool.pytest.ini_options]
 # Ensure pytest doesn't recurse into the exploration/ directory.
 # This avoids adding a top-level conftest.py while still configuring pytest.
 norecursedirs = ["exploration"]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+]
+project-excludes = [
+    "**/examples/",
+    "**/exploration/",
+    "**/tests/conftest.py",
+    "**/tests/integration/conftest.py",
+]

@@ -41,7 +41,12 @@ class SyncRateLimit(Protocol):
         """
         ...  # pylint: disable=unnecessary-ellipsis
 
-    def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the context manager, releasing any resources if necessary
 
         Args:
@@ -59,7 +64,9 @@ class AsyncRateLimit(Protocol):
         max_concurrent: Maximum number of concurrent requests allowed to acquire capacity
     """
 
-    def __init__(self, bucket_config: BucketConfig, max_concurrent: int | None = None) -> None: ...
+    def __init__(
+        self, bucket_config: BucketConfig, max_concurrent: int | None = None
+    ) -> None: ...
 
     async def acquire(self, amount: float = 1, timeout: float | None = None) -> None:
         """Acquire an item from the rate limit. This method should block until a token is available
@@ -79,7 +86,12 @@ class AsyncRateLimit(Protocol):
         """
         ...  # pylint: disable=unnecessary-ellipsis
 
-    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the context manager, releasing any resources if necessary
 
         Args:
