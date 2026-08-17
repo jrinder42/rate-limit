@@ -25,51 +25,37 @@ Whether you're building APIs, web services, or any other system that requires ra
 
 ## Example Usage
 
-LLM Token Rate Limiting
+### LLM Token Rate Limiting
 
-- System-wide rate limit of 100,000 tokens per second + simulate inputs of varying token amounts 
-
-??? warning "decorator creation"
-
-    This assumes all parameters need to be passed by the end-user. If you want to
-    create a decorator with optional parameters, see `limitor/__init__.py` for an example.
+`limitor` provides native support for variable-capacity and LLM token-based rate limiting via decorators and context managers using `acquire_ctx()`, `reconcile()`, and optional `token_estimate` / `token_reconcile` decorator hooks.
 
 === "Synchronous"
 
+    #### Decorator with Estimation & Reconciliation
+
     ```python
-    from functools import wraps
     import random
     import time
-    from typing import Callable
-    
-    from limitor.base import SyncRateLimit
-    from limitor.configs import BucketConfig
-    from limitor.leaky_bucket.core import SyncLeakyBucket # (1)!
-    
-    
-    def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket) -> Callable:
-        bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
-    
-        def decorator(func):
-        
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                amount = kwargs.get("amount", 1)
-                bucket.acquire(amount=amount)
-                return func(*args, **kwargs)
-            return wrapper
-    
-        return decorator
-    
-    @rate_limit(capacity=100_000, seconds=1)
-    def process_request(amount=1):
-        print(f"This is a rate-limited function: {time.strftime('%X')} - {amount} tokens")
-    
-    for _ in range(100):
-        # generate random prompt tokens between 5,000 and 30,000 for 100 sample requests
-        llm_prompt_tokens = random.randint(5_000, 30_000)
+    from limitor import rate_limit
+    from limitor.token_bucket.core import SyncTokenBucket # (1)!
+
+    # Rate limit of 100,000 tokens per second
+    @rate_limit(
+        capacity=100_000,
+        seconds=1,
+        bucket_cls=SyncTokenBucket,
+        token_estimate=lambda prompt, **kw: len(prompt) * 4,  # Estimate prompt tokens
+        token_reconcile=lambda response: response["usage"]["total_tokens"],  # Reconcile actual usage
+    )
+    def query_llm(prompt: str):
+        # Simulated API call returning usage metadata
+        print(f"[{time.strftime('%X')}] Generating response for {len(prompt)*4} estimated tokens")
+        return {"content": "Response", "usage": {"total_tokens": len(prompt) * 4 + 20}}
+
+    for _ in range(10):
+        prompt = "x" * random.randint(1_000, 5_000)
         try:
-            process_request(amount=llm_prompt_tokens)
+            query_llm(prompt)
         except Exception as error:
             print(f"Rate limit exceeded: {error}")
     ```
@@ -80,47 +66,53 @@ LLM Token Rate Limiting
           - `SyncVirtualSchedulingGCRA`
           - `SyncLeakyBucketGCRA`
 
-=== "Asynchronous"
+    #### Parameterized Context Manager
 
     ```python
-    from functools import wraps
+    from limitor.configs import BucketConfig
+    from limitor.token_bucket.core import SyncTokenBucket
+
+    bucket = SyncTokenBucket(BucketConfig(capacity=100_000, seconds=60))
+    estimated_tokens = 500
+
+    with bucket.acquire_ctx(amount=estimated_tokens):
+        # response = client.chat.completions.create(...)
+        actual_tokens = 480
+        bucket.reconcile(actual=actual_tokens, estimated=estimated_tokens)
+    ```
+
+=== "Asynchronous"
+
+    #### Decorator with Estimation & Reconciliation
+
+    ```python
+    import asyncio
     import random
     import time
-    import asyncio
-    from typing import Callable
-    
-    from limitor.base import AsyncRateLimit
-    from limitor.configs import BucketConfig
-    from limitor.leaky_bucket.core import AsyncLeakyBucket # (1)!
-    
-    
-    def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket) -> Callable:
-        bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
-    
-        def decorator(func):
-        
-            @wraps(func)
-            async def wrapper(*args, **kwargs):
-                amount = kwargs.get("amount", 1)
-                await bucket.acquire(amount=amount)
-                return await func(*args, **kwargs)
-            return wrapper
-    
-        return decorator
-    
-    @rate_limit(capacity=100_000, seconds=1)
-    async def process_request(amount=1):
-        print(f"This is a rate-limited function: {time.strftime('%X')} - {amount} tokens")
-    
+    from limitor import async_rate_limit
+    from limitor.token_bucket.core import AsyncTokenBucket # (1)!
+
+    # Rate limit of 100,000 tokens per second
+    @async_rate_limit(
+        capacity=100_000,
+        seconds=1,
+        bucket_cls=AsyncTokenBucket,
+        token_estimate=lambda prompt, **kw: len(prompt) * 4,  # Estimate prompt tokens
+        token_reconcile=lambda response: response["usage"]["total_tokens"],  # Reconcile actual usage
+    )
+    async def query_llm(prompt: str):
+        # Simulated async API call returning usage metadata
+        print(f"[{time.strftime('%X')}] Generating response for {len(prompt)*4} estimated tokens")
+        return {"content": "Response", "usage": {"total_tokens": len(prompt) * 4 + 20}}
+
     async def main():
-        for _ in range(100):
-            # generate random prompt tokens between 5,000 and 30,000 for 100 sample requests
-            llm_prompt_tokens = random.randint(5_000, 30_000)
+        for _ in range(10):
+            prompt = "x" * random.randint(1_000, 5_000)
             try:
-                await process_request(amount=llm_prompt_tokens)
+                await query_llm(prompt)
             except Exception as error:
                 print(f"Rate limit exceeded: {error}")
-    
+
     asyncio.run(main())
     ```
 
@@ -129,6 +121,25 @@ LLM Token Rate Limiting
           - `AsyncTokenBucket`
           - `AsyncVirtualSchedulingGCRA`
           - `AsyncLeakyBucketGCRA`
+
+    #### Parameterized Context Manager
+
+    ```python
+    import asyncio
+    from limitor.configs import BucketConfig
+    from limitor.token_bucket.core import AsyncTokenBucket
+
+    async def main():
+        bucket = AsyncTokenBucket(BucketConfig(capacity=100_000, seconds=60))
+        estimated_tokens = 500
+
+        async with bucket.acquire_ctx(amount=estimated_tokens):
+            # response = await client.chat.completions.create(...)
+            actual_tokens = 480
+            await bucket.reconcile(actual=actual_tokens, estimated=estimated_tokens)
+
+    asyncio.run(main())
+    ```
 
 ## References
 
