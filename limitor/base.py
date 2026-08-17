@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from types import TracebackType
 from typing import Protocol
 
@@ -31,6 +32,25 @@ class SyncRateLimit(Protocol):
             amount: The amount of capacity to acquire, defaults to 1
         """
 
+    def acquire_ctx(self, amount: float = 1) -> AbstractContextManager[SyncRateLimit]:
+        """Parameterized context manager to acquire a specified amount of capacity
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+
+        Returns:
+            A context manager yielding the rate limit instance
+        """
+        ...  # pyrefly: ignore
+
+    def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+
     def __enter__(self) -> SyncRateLimit:
         """Enter the context manager, acquiring resources if necessary
 
@@ -39,7 +59,7 @@ class SyncRateLimit(Protocol):
         Returns:
             An instance of the rate limit context manager
         """
-        ...  # pylint: disable=unnecessary-ellipsis
+        ...  # pyrefly: ignore
 
     def __exit__(
         self,
@@ -76,6 +96,28 @@ class AsyncRateLimit(Protocol):
             timeout: Optional timeout in seconds for the acquire operation
         """
 
+    def acquire_ctx(
+        self, amount: float = 1, timeout: float | None = None
+    ) -> AbstractAsyncContextManager[AsyncRateLimit]:
+        """Parameterized async context manager to acquire a specified amount of capacity
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+            timeout: Optional timeout in seconds for the acquire operation
+
+        Returns:
+            An async context manager yielding the rate limit instance
+        """
+        ...  # pyrefly: ignore
+
+    async def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+
     async def __aenter__(self) -> AsyncRateLimit:
         """Enter the context manager, acquiring resources if necessary
 
@@ -84,7 +126,7 @@ class AsyncRateLimit(Protocol):
         Returns:
             An instance of the rate limit context manager
         """
-        ...  # pylint: disable=unnecessary-ellipsis
+        ...  # pyrefly: ignore
 
     async def __aexit__(
         self,
