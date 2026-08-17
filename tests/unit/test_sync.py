@@ -25,7 +25,7 @@ from limitor.token_bucket.core import SyncTokenBucket
 )
 def bucket_cls(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> Any:
     """Fixture that provides bucket instances with capacity=2, seconds=0.2 for general tests"""
-    return request.param(bucket_config)  # like AsyncLeakyBucket(BucketConfig(...))
+    return request.param(bucket_config)  # like SyncLeakyBucket(BucketConfig(...))
 
 
 # test amount
@@ -325,10 +325,13 @@ def test_context_manager_calls_acquire_unit(
 
 
 @pytest.mark.parametrize("bucket_cls_wait", [SyncLeakyBucket, SyncTokenBucket])
+@patch("time.sleep")
 def test_acquire_wait_time_less_than_or_equal_to_zero(
-    bucket_cls_wait: type[SyncRateLimit], bucket_config: BucketConfig
+    mocked_sleep: MagicMock,
+    bucket_cls_wait: type[SyncRateLimit],
+    bucket_config: BucketConfig,
 ) -> None:
-    """Test the branch where wait_time <= 0 inside the acquire loop"""
+    """Test the branch where wait_time <= 0 inside the acquire loop does not sleep"""
     bucket = bucket_cls_wait(bucket_config=bucket_config)
     with patch.object(bucket, "capacity_info") as mocked_capacity_info:
         mocked_capacity_info.side_effect = [
@@ -336,3 +339,42 @@ def test_acquire_wait_time_less_than_or_equal_to_zero(
             Capacity(has_capacity=True, needed_capacity=0),
         ]
         bucket.acquire(1)
+
+    mocked_sleep.assert_not_called()
+
+
+def test_acquire_ctx_custom_amount(
+    bucket_cls: SyncRateLimit, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test acquire_ctx context manager acquires custom amount"""
+    mocked_acquire = MagicMock()
+    monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
+
+    with bucket_cls.acquire_ctx(amount=1.5) as ctx:
+        assert ctx is bucket_cls
+
+    mocked_acquire.assert_called_once_with(amount=1.5)
+
+
+class TestReconcile:
+    """Tests for the `reconcile` method of sync bucket implementations"""
+
+    def test_reconcile_underestimate_calls_acquire(
+        self, bucket_cls: SyncRateLimit, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test reconcile when actual > estimated acquires the difference"""
+        mocked_acquire = MagicMock()
+        monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
+
+        bucket_cls.reconcile(actual=10, estimated=6)
+        mocked_acquire.assert_called_once_with(amount=4)
+
+    def test_reconcile_equal_amount_no_op(
+        self, bucket_cls: SyncRateLimit, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test reconcile when actual == estimated does not call acquire"""
+        mocked_acquire = MagicMock()
+        monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
+
+        bucket_cls.reconcile(actual=5, estimated=5)
+        mocked_acquire.assert_not_called()

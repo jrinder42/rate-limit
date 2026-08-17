@@ -10,7 +10,13 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from contextlib import AbstractAsyncContextManager, nullcontext
+from collections.abc import AsyncGenerator, Generator
+from contextlib import (
+    AbstractAsyncContextManager,
+    asynccontextmanager,
+    contextmanager,
+    nullcontext,
+)
 from types import TracebackType
 from typing import Any
 
@@ -70,6 +76,37 @@ class SyncVirtualSchedulingGCRA:
                 time.sleep(delay)
 
             self._tat = max(t_a, self._tat) + amount * self.T
+
+    @contextmanager
+    def acquire_ctx(self, amount: float = 1) -> Generator[SyncVirtualSchedulingGCRA]:
+        """Context manager that acquires a specific amount of capacity.
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+
+        Yields:
+            Generator[SyncVirtualSchedulingGCRA]: The SyncVirtualSchedulingGCRA instance
+        """
+        self.acquire(amount=amount)
+        try:
+            yield self
+        finally:
+            pass
+
+    def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount.
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+        diff = actual - estimated
+        if diff > 0:
+            self.acquire(amount=diff)
+        elif diff < 0:
+            with self._lock:
+                if self._tat is not None:
+                    self._tat = max(time.monotonic(), self._tat + diff * self.T)
 
     def __enter__(self) -> SyncVirtualSchedulingGCRA:
         """Enter the context manager, acquiring resources if necessary
@@ -156,6 +193,41 @@ class SyncLeakyBucketGCRA:
 
             self._bucket_level = max(0.0, self._bucket_level) + amount * self.T
             self._last_leak = t_a
+
+    @contextmanager
+    def acquire_ctx(self, amount: float = 1) -> Generator[SyncLeakyBucketGCRA]:
+        """Context manager that acquires a specific amount of capacity.
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+
+        Yields:
+            Generator[SyncLeakyBucketGCRA]: The SyncLeakyBucketGCRA instance
+        """
+        self.acquire(amount=amount)
+        try:
+            yield self
+        finally:
+            pass
+
+    def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount.
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+        diff = actual - estimated
+        if diff > 0:
+            self.acquire(amount=diff)
+        elif diff < 0:
+            with self._lock:
+                t_a = time.monotonic()
+                if self._last_leak is not None:
+                    elapsed = t_a - self._last_leak
+                    self._bucket_level = max(0.0, self._bucket_level - elapsed)
+                    self._last_leak = t_a
+                self._bucket_level = max(0.0, self._bucket_level + diff * self.T)
 
     def __enter__(self) -> SyncLeakyBucketGCRA:
         """Enter the context manager, acquiring resources if necessary
@@ -290,6 +362,40 @@ class AsyncVirtualSchedulingGCRA:
                 ) from error
         else:
             await self._semaphore_acquire(amount)
+
+    @asynccontextmanager
+    async def acquire_ctx(
+        self, amount: float = 1, timeout: float | None = None
+    ) -> AsyncGenerator[AsyncVirtualSchedulingGCRA]:
+        """Async context manager that acquires a specific amount of capacity.
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+            timeout: Optional timeout in seconds for the acquire operation
+
+        Yields:
+            AsyncGenerator[AsyncVirtualSchedulingGCRA]: The AsyncVirtualSchedulingGCRA instance
+        """
+        await self.acquire(amount=amount, timeout=timeout)
+        try:
+            yield self
+        finally:
+            pass
+
+    async def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount.
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+        diff = actual - estimated
+        if diff > 0:
+            await self.acquire(amount=diff)
+        elif diff < 0:
+            async with self._lock:
+                if self._tat is not None:
+                    self._tat = max(time.monotonic(), self._tat + diff * self.T)
 
     async def __aenter__(self) -> AsyncVirtualSchedulingGCRA:
         """Enter the context manager, acquiring resources if necessary
@@ -432,6 +538,44 @@ class AsyncLeakyBucketGCRA:
                 ) from error
         else:
             await self._semaphore_acquire(amount)
+
+    @asynccontextmanager
+    async def acquire_ctx(
+        self, amount: float = 1, timeout: float | None = None
+    ) -> AsyncGenerator[AsyncLeakyBucketGCRA]:
+        """Async context manager that acquires a specific amount of capacity.
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+            timeout: Optional timeout in seconds for the acquire operation
+
+        Yields:
+            AsyncGenerator[AsyncLeakyBucketGCRA]: The AsyncLeakyBucketGCRA instance
+        """
+        await self.acquire(amount=amount, timeout=timeout)
+        try:
+            yield self
+        finally:
+            pass
+
+    async def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount.
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+        diff = actual - estimated
+        if diff > 0:
+            await self.acquire(amount=diff)
+        elif diff < 0:
+            async with self._lock:
+                t_a = time.monotonic()
+                if self._last_leak is not None:
+                    elapsed = t_a - self._last_leak
+                    self._bucket_level = max(0.0, self._bucket_level - elapsed)
+                    self._last_leak = t_a
+                self._bucket_level = max(0.0, self._bucket_level + diff * self.T)
 
     async def __aenter__(self) -> AsyncLeakyBucketGCRA:
         """Enter the context manager, acquiring resources if necessary

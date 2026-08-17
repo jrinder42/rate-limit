@@ -81,48 +81,70 @@ uv lock --upgrade-package requests
 > [!IMPORTANT]
 > These are special use cases. The general use cases are in the `examples/` folder
 
-### LLM Token-Based Rate Limiting
+### Token & Variable-Amount Rate Limiting (LLM TPM, Batch Sizes)
 
-> [!NOTE]
-> This decorator assumes that the user will pass any necessary params. If you want to make these optional, see `limitor/__init__.py`
+`limitor` natively supports variable-capacity and LLM token-based rate limiting via decorators and context managers using `acquire_ctx()`, `reconcile()`, and optional `token_estimate` / `token_reconcile` decorator hooks.
+
+#### 1. Dynamic Token Estimation with Decorators (LLM Prompt Tokens)
 
 ```python
-from functools import wraps
 import random
 import time
-from typing import Callable
+from limitor import rate_limit
+from limitor.token_bucket.core import SyncTokenBucket
 
-from limitor.base import SyncRateLimit
+# Rate limit of 100,000 tokens per second
+@rate_limit(
+    capacity=100_000,
+    seconds=1,
+    bucket_cls=SyncTokenBucket,
+    token_estimate=lambda prompt, **kw: len(prompt) * 4,  # Estimate tokens from prompt
+)
+def generate_response(prompt: str):
+    print(f"[{time.strftime('%X')}] Generating response for prompt ({len(prompt)*4} tokens)")
+    return f"Response to: {prompt}"
+
+for i in range(10):
+    sample_prompt = "x" * random.randint(1_000, 5_000)
+    generate_response(sample_prompt)
+```
+
+#### 2. Full LLM Prompt Estimation + Response Token Reconciliation
+
+When working with LLM APIs, you can estimate prompt tokens before the request and reconcile with the exact total tokens reported in the API response:
+
+```python
+from limitor import rate_limit
+from limitor.token_bucket.core import SyncTokenBucket
+
+# Automatically debit excess tokens or refund unused tokens
+@rate_limit(
+    capacity=50_000,
+    seconds=60,
+    bucket_cls=SyncTokenBucket,
+    token_estimate=lambda prompt, **kw: len(prompt) // 4,
+    token_reconcile=lambda response: response["usage"]["total_tokens"],
+)
+def query_llm(prompt: str):
+    # Simulated API call returning usage metadata
+    return {"content": "Hello!", "usage": {"total_tokens": 120}}
+```
+
+#### 3. Variable Tokens with Context Managers (`acquire_ctx` & `reconcile`)
+
+```python
 from limitor.configs import BucketConfig
-from limitor.leaky_bucket.core import SyncLeakyBucket
+from limitor.token_bucket.core import SyncTokenBucket
 
+bucket = SyncTokenBucket(BucketConfig(capacity=100_000, seconds=60))
 
-def rate_limit(capacity: int = 10, seconds: float = 1, bucket_cls: type[SyncRateLimit] = SyncLeakyBucket) -> Callable:
-    bucket = bucket_cls(BucketConfig(capacity=capacity, seconds=seconds))
+estimated_tokens = 500
 
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            amount = kwargs.get("amount", 1)
-            bucket.acquire(amount=amount)
-            return func(*args, **kwargs)
-        return wrapper
-
-    return decorator
-
-# limit of 100,000 tokens per second
-
-@rate_limit(capacity=100_000, seconds=1)
-def process_request(amount=1):
-    print(f"This is a rate-limited function: {time.strftime('%X')} - {amount} tokens")
-
-for _ in range(100):
-    # generate random prompt tokens between 5,000 and 30,000 for 100 sample requests
-    llm_prompt_tokens = random.randint(5_000, 30_000)
-    try:
-        process_request(amount=llm_prompt_tokens)
-    except Exception as error:
-        print(f"Rate limit exceeded: {error}")
+# Acquire custom amount via context manager and reconcile actual usage
+with bucket.acquire_ctx(amount=estimated_tokens):
+    # response = client.chat.completions.create(...)
+    actual_tokens = 450  # e.g. response.usage.total_tokens
+    bucket.reconcile(actual=actual_tokens, estimated=estimated_tokens)
 ```
 
 ### With User-Specific Rate Limits + Cache

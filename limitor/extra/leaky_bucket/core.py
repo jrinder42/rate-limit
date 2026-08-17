@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from types import TracebackType
 from typing import Any
 
@@ -152,6 +154,39 @@ class AsyncLeakyBucket:
 
         await self._queue.put(None)  # Sentinel value
         await self._worker_task
+
+    @asynccontextmanager
+    async def acquire_ctx(
+        self, amount: float = 1, timeout: float | None = None
+    ) -> AsyncGenerator[AsyncLeakyBucket]:
+        """Async context manager that acquires a specific amount of capacity.
+
+        Args:
+            amount: The amount of capacity to acquire, defaults to 1
+            timeout: Optional timeout in seconds for the acquire operation
+
+        Yields:
+            AsyncGenerator[AsyncLeakyBucket]: The AsyncLeakyBucket instance
+        """
+        await self.acquire(amount=amount, timeout=timeout)
+        try:
+            yield self
+        finally:
+            pass
+
+    async def reconcile(self, actual: float, estimated: float) -> None:
+        """Reconcile the actual tokens/capacity used against the estimated amount.
+
+        Args:
+            actual: The actual amount of tokens/capacity used
+            estimated: The estimated amount of tokens/capacity previously acquired
+        """
+        diff = actual - estimated
+        if diff > 0:
+            await self.acquire(amount=diff)
+        elif diff < 0:
+            self._leak()
+            self._bucket_level = max(0.0, self._bucket_level + diff)
 
     async def __aenter__(self) -> AsyncLeakyBucket:
         """Enter the context manager, acquiring resources if necessary"""

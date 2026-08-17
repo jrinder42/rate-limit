@@ -180,3 +180,88 @@ def test_context_manager_calls_acquire(
 
     assert len(sleep_calls) >= 4
     assert value_list == [1, 2, 3, 4, 5, 6]  # assert order is correct
+
+
+class TestReconcileOverestimate:
+    """Tests for reconcile refund behavior (actual < estimated) per bucket type"""
+
+    def test_token_bucket_refunds(self, bucket_config: BucketConfig) -> None:
+        """Token bucket refund adds back to _bucket_level"""
+        tb = SyncTokenBucket(bucket_config=bucket_config)
+        tb._bucket_level = 0.5
+        tb.reconcile(actual=2, estimated=3)
+        assert tb._bucket_level > 0.5
+
+    def test_leaky_bucket_refunds(self, bucket_config: BucketConfig) -> None:
+        """Leaky bucket refund subtracts from _bucket_level"""
+        lb = SyncLeakyBucket(bucket_config=bucket_config)
+        lb._bucket_level = 1.5
+        lb.reconcile(actual=1, estimated=2)
+        assert lb._bucket_level < 1.5
+
+    def test_gcra_vs_refunds_when_acquired(self, bucket_config: BucketConfig) -> None:
+        """GCRA virtual-scheduling refund pulls TAT backward after an acquire"""
+        gcra_vs = SyncVirtualSchedulingGCRA(bucket_config=bucket_config)
+        gcra_vs.acquire(1)
+        prev_tat = gcra_vs._tat
+        gcra_vs.reconcile(actual=0.5, estimated=1.0)
+        assert gcra_vs._tat is not None
+        assert prev_tat is not None
+        assert gcra_vs._tat < prev_tat
+
+    def test_gcra_vs_refunds_when_not_acquired(
+        self, bucket_config: BucketConfig
+    ) -> None:
+        """GCRA virtual-scheduling refund preserves None _tat when never acquired"""
+        gcra_vs = SyncVirtualSchedulingGCRA(bucket_config=bucket_config)
+        gcra_vs.reconcile(actual=0.5, estimated=1.0)
+        assert gcra_vs._tat is None
+
+    def test_gcra_lb_refunds_when_acquired(self, bucket_config: BucketConfig) -> None:
+        """GCRA leaky-bucket refund reduces _bucket_level after an acquire"""
+        gcra_lb = SyncLeakyBucketGCRA(bucket_config=bucket_config)
+        gcra_lb.acquire(1)
+        gcra_lb.reconcile(actual=0.5, estimated=1.0)
+        assert gcra_lb._bucket_level < 1.0
+
+    def test_gcra_lb_refunds_when_not_acquired(
+        self, bucket_config: BucketConfig
+    ) -> None:
+        """GCRA leaky-bucket refund preserves state when never acquired"""
+        gcra_lb = SyncLeakyBucketGCRA(bucket_config=bucket_config)
+        gcra_lb.reconcile(actual=0.5, estimated=1.0)
+        assert gcra_lb._last_leak is None
+        assert gcra_lb._bucket_level == 0.0
+
+
+def test_decorator_token_estimate_and_reconcile() -> None:
+    """Test decorator with token_estimate and token_reconcile hooks"""
+
+    @rate_limit(
+        capacity=100,
+        seconds=1,
+        bucket_cls=SyncTokenBucket,
+        token_estimate=lambda prompt, **kw: len(prompt) * 2,
+        token_reconcile=lambda res: res["tokens"],
+    )
+    def call_llm(prompt: str):
+        return {"content": "ok", "tokens": len(prompt) * 3}
+
+    res = call_llm("hello")
+    assert res == {"content": "ok", "tokens": 15}
+
+
+def test_decorator_token_estimate_only() -> None:
+    """Test decorator with token_estimate only (no token_reconcile)"""
+
+    @rate_limit(
+        capacity=100,
+        seconds=1,
+        bucket_cls=SyncTokenBucket,
+        token_estimate=lambda prompt, **kw: len(prompt) * 2,
+    )
+    def call_llm(prompt: str):
+        return f"result: {prompt}"
+
+    res = call_llm("hello")
+    assert res == "result: hello"
