@@ -35,6 +35,32 @@ def bucket_cls(request: pytest.FixtureRequest, bucket_config: BucketConfig) -> A
 class TestAmountValidation:
     """Tests for amount validation in async bucket implementations"""
 
+    @patch(
+        "limitor.utils.validate_amount",
+        side_effect=ValueError("Cannot acquire more than the bucket's capacity: 2"),
+    )
+    async def test_acquire_rejects_amount_greater_than_capacity(
+        self, mocked_validate_amount: MagicMock, bucket_cls: AsyncRateLimit
+    ) -> None:
+        """Verify that requesting more than the configured capacity raises ValueError"""
+        with pytest.raises(
+            ValueError, match=r"Cannot acquire more than the bucket's capacity: 2"
+        ):
+            await bucket_cls.acquire(3)
+
+    @patch(
+        "limitor.utils.validate_amount",
+        side_effect=ValueError("Cannot acquire less than 0 amount with amount: -1"),
+    )
+    async def test_acquire_rejects_amount_less_than_zero(
+        self, mocked_validate_amount: MagicMock, bucket_cls: AsyncRateLimit
+    ) -> None:
+        """Verify that requesting a negative amount raises ValueError"""
+        with pytest.raises(
+            ValueError, match=r"Cannot acquire less than 0 amount with amount: -1"
+        ):
+            await bucket_cls.acquire(-1)
+
     @pytest.mark.parametrize("bucket_cls", [AsyncLeakyBucket, AsyncTokenBucket])
     @patch("asyncio.sleep", new_callable=AsyncMock)
     @patch("time.monotonic", side_effect=[0, 0, 0, 0, 0.1])
@@ -351,9 +377,6 @@ class TestAsyncFeatures:
         mock_locked.__aexit__ = AsyncMock()
         bucket._lock = mock_locked  # type: ignore
 
-        # Patch asyncio.sleep to avoid actual waiting
-        # Patch time.monotonic to ensure deterministic behavior for GCRA
-
         await bucket.acquire(amount=1)
 
         mock_locked.__aenter__.assert_called_once()
@@ -377,8 +400,6 @@ class TestAsyncFeatures:
         """Test the lifecycle of the worker task in AsyncLeakyBucketExtra"""
         bucket = AsyncLeakyBucketExtra(bucket_config)
         assert bucket._worker_task is None
-
-        # We need to mock queue.put and future to avoid actual execution
 
         # Use a real future but resolve it immediately
         loop = asyncio.get_running_loop()
@@ -488,7 +509,7 @@ async def test_acquire_wait_time_less_than_or_equal_to_zero(
     bucket_cls_wait: type[AsyncRateLimit],
     bucket_config: BucketConfig,
 ) -> None:
-    """Test the branch where wait_time <= 0 inside the acquire loop"""
+    """Test the branch where wait_time <= 0 inside the acquire loop does not sleep"""
     bucket = bucket_cls_wait(bucket_config=bucket_config)
     with patch.object(bucket, "capacity_info") as mocked_capacity_info:
         mocked_capacity_info.side_effect = [
@@ -496,4 +517,44 @@ async def test_acquire_wait_time_less_than_or_equal_to_zero(
             Capacity(has_capacity=True, needed_capacity=0),
         ]
         await bucket.acquire(1)
-        mocked_sleep.assert_not_called()
+
+    mocked_sleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_acquire_ctx_custom_amount(
+    bucket_cls: AsyncRateLimit, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test acquire_ctx context manager acquires custom amount asynchronously"""
+    mocked_acquire = AsyncMock()
+    monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
+
+    async with bucket_cls.acquire_ctx(amount=1.5, timeout=2.0) as ctx:
+        assert ctx is bucket_cls
+
+    mocked_acquire.assert_awaited_once_with(amount=1.5, timeout=2.0)
+
+
+@pytest.mark.asyncio
+class TestReconcile:
+    """Tests for the `reconcile` method of async bucket implementations"""
+
+    async def test_reconcile_underestimate_calls_acquire(
+        self, bucket_cls: AsyncRateLimit, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test async reconcile when actual > estimated acquires the difference"""
+        mocked_acquire = AsyncMock()
+        monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
+
+        await bucket_cls.reconcile(actual=10, estimated=6)
+        mocked_acquire.assert_awaited_once_with(amount=4)
+
+    async def test_reconcile_equal_amount_no_op(
+        self, bucket_cls: AsyncRateLimit, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test async reconcile when actual == estimated does not call acquire"""
+        mocked_acquire = AsyncMock()
+        monkeypatch.setattr(bucket_cls, "acquire", mocked_acquire)
+
+        await bucket_cls.reconcile(actual=5, estimated=5)
+        mocked_acquire.assert_not_called()
