@@ -158,7 +158,7 @@ class AsyncLeakyBucket:
     @asynccontextmanager
     async def acquire_ctx(
         self, amount: float = 1, timeout: float | None = None
-    ) -> AsyncGenerator[AsyncLeakyBucket, None]:
+    ) -> AsyncGenerator[AsyncLeakyBucket]:
         """Async context manager that acquires a specific amount of capacity.
 
         Args:
@@ -166,7 +166,7 @@ class AsyncLeakyBucket:
             timeout: Optional timeout in seconds for the acquire operation
 
         Yields:
-            AsyncLeakyBucket: The AsyncLeakyBucket instance
+            AsyncGenerator[AsyncLeakyBucket]: The AsyncLeakyBucket instance
         """
         await self.acquire(amount=amount, timeout=timeout)
         try:
