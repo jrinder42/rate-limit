@@ -24,8 +24,8 @@ def rate_limit[**P, R](
     capacity: float = 10,
     seconds: float = 1,
     bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
-    token_estimate: Callable[P, float] | None = None,
-    token_reconcile: Callable[[R], float] | None = None,
+    token_estimate: Callable[..., float] | None = None,
+    token_reconcile: Callable[..., float] | None = None,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
@@ -36,8 +36,8 @@ def rate_limit[**P, R](
     capacity: float = 10,
     seconds: float = 1,
     bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
-    token_estimate: Callable[P, float] | None = None,
-    token_reconcile: Callable[[R], float] | None = None,
+    token_estimate: Callable[..., float] | None = None,
+    token_reconcile: Callable[..., float] | None = None,
 ) -> Callable[P, R]: ...
 
 
@@ -47,8 +47,8 @@ def rate_limit[**P, R](
     capacity: float = 10,
     seconds: float = 1,
     bucket_cls: type[SyncRateLimit] = SyncLeakyBucket,
-    token_estimate: Callable[P, float] | None = None,
-    token_reconcile: Callable[[R], float] | None = None,
+    token_estimate: Callable[..., float] | None = None,
+    token_reconcile: Callable[..., float] | None = None,
 ) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to apply a synchronous rate limit to a function.
 
@@ -99,8 +99,8 @@ def async_rate_limit[**P, R](
     seconds: float = 1,
     max_concurrent: int | None = None,
     bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
-    token_estimate: Callable[P, float] | None = None,
-    token_reconcile: Callable[[R], float] | None = None,
+    token_estimate: Callable[..., float] | None = None,
+    token_reconcile: Callable[..., float] | None = None,
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]: ...
 
 
@@ -112,8 +112,8 @@ def async_rate_limit[**P, R](
     seconds: float = 1,
     max_concurrent: int | None = None,
     bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
-    token_estimate: Callable[P, float] | None = None,
-    token_reconcile: Callable[[R], float] | None = None,
+    token_estimate: Callable[..., float] | None = None,
+    token_reconcile: Callable[..., float] | None = None,
 ) -> Callable[P, Awaitable[R]]: ...
 
 
@@ -124,8 +124,8 @@ def async_rate_limit[**P, R](
     seconds: float = 1,
     max_concurrent: int | None = None,
     bucket_cls: type[AsyncRateLimit] = AsyncLeakyBucket,
-    token_estimate: Callable[P, float] | None = None,
-    token_reconcile: Callable[[R], float] | None = None,
+    token_estimate: Callable[..., float] | None = None,
+    token_reconcile: Callable[..., float] | None = None,
 ) -> (
     Callable[P, Awaitable[R]]
     | Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]
