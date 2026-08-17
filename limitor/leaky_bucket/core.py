@@ -99,7 +99,7 @@ class SyncLeakyBucket:
             amount: The amount of capacity to acquire, defaults to 1
 
         Yields:
-            SyncLeakyBucket: The SyncLeakyBucket instance
+            Generator[SyncLeakyBucket]: The SyncLeakyBucket instance
         """
         self.acquire(amount=amount)
         try:
@@ -268,7 +268,7 @@ class AsyncLeakyBucket:
             timeout: Optional timeout in seconds for the acquire operation
 
         Yields:
-            AsyncLeakyBucket: The AsyncLeakyBucket instance
+            AsyncGenerator[AsyncLeakyBucket]: The AsyncLeakyBucket instance
         """
         await self.acquire(amount=amount, timeout=timeout)
         try:

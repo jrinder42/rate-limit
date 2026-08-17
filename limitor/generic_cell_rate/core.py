@@ -85,7 +85,7 @@ class SyncVirtualSchedulingGCRA:
             amount: The amount of capacity to acquire, defaults to 1
 
         Yields:
-            SyncVirtualSchedulingGCRA: The SyncVirtualSchedulingGCRA instance
+            Generator[SyncVirtualSchedulingGCRA]: The SyncVirtualSchedulingGCRA instance
         """
         self.acquire(amount=amount)
         try:
@@ -202,7 +202,7 @@ class SyncLeakyBucketGCRA:
             amount: The amount of capacity to acquire, defaults to 1
 
         Yields:
-            SyncLeakyBucketGCRA: The SyncLeakyBucketGCRA instance
+            Generator[SyncLeakyBucketGCRA]: The SyncLeakyBucketGCRA instance
         """
         self.acquire(amount=amount)
         try:
@@ -374,7 +374,7 @@ class AsyncVirtualSchedulingGCRA:
             timeout: Optional timeout in seconds for the acquire operation
 
         Yields:
-            AsyncVirtualSchedulingGCRA: The AsyncVirtualSchedulingGCRA instance
+            AsyncGenerator[AsyncVirtualSchedulingGCRA]: The AsyncVirtualSchedulingGCRA instance
         """
         await self.acquire(amount=amount, timeout=timeout)
         try:
@@ -550,7 +550,7 @@ class AsyncLeakyBucketGCRA:
             timeout: Optional timeout in seconds for the acquire operation
 
         Yields:
-            AsyncLeakyBucketGCRA: The AsyncLeakyBucketGCRA instance
+            AsyncGenerator[AsyncLeakyBucketGCRA]: The AsyncLeakyBucketGCRA instance
         """
         await self.acquire(amount=amount, timeout=timeout)
         try:

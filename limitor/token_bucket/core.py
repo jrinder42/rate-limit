@@ -102,7 +102,7 @@ class SyncTokenBucket:
             amount: The amount of capacity to acquire, defaults to 1
 
         Yields:
-            SyncTokenBucket: The SyncTokenBucket instance
+            Generator[SyncTokenBucket]: The SyncTokenBucket instance
         """
         self.acquire(amount=amount)
         try:
@@ -275,7 +275,7 @@ class AsyncTokenBucket:
             timeout: Optional timeout in seconds for the acquire operation
 
         Yields:
-            AsyncTokenBucket: The AsyncTokenBucket instance
+            AsyncGenerator[AsyncTokenBucket]: The AsyncTokenBucket instance
         """
         await self.acquire(amount=amount, timeout=timeout)
         try:
