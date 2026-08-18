@@ -42,7 +42,6 @@ testing = [
 ci = [
     "ruff",
     "pyrefly>=1.0.0",
-    "pylint",
     "pyupgrade",
     "pydoclint[flake8]",
     "flake8-pyproject",  # this is an issue with the above, actually a dep for pydoclint[flake8]
