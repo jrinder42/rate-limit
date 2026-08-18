@@ -9,7 +9,7 @@ from typing import Protocol
 from limitor.configs import BucketConfig
 
 
-class HasCapacity(Protocol):  # pylint: disable=too-few-public-methods
+class HasCapacity(Protocol):
     """Protocol for objects that have a capacity attribute"""
 
     capacity: float
