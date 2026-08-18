@@ -12,5 +12,5 @@ def something() -> None:
 for _ in range(10):
     try:
         something()
-    except Exception as error:  # pylint: disable=broad-exception-caught
+    except Exception as error:
         print(f"Rate limit exceeded: {error}")

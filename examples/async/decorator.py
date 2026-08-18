@@ -15,7 +15,7 @@ async def main() -> None:
     for _ in range(10):
         try:
             await something_async()
-        except Exception as error:  # pylint: disable=broad-exception-caught
+        except Exception as error:
             print(f"Rate limit exceeded: {error}")
 
 
