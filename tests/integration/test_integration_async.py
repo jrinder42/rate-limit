@@ -54,7 +54,7 @@ def test_initialization_default(bucket_cls: type[AsyncLeakyBucket]) -> None:
 
     assert default_bucket.capacity == 10
     assert default_bucket.seconds == 1
-    assert isinstance(default_bucket._lock, asyncio.Lock)  # pylint: disable=protected-access
+    assert isinstance(default_bucket._lock, asyncio.Lock)
     assert default_bucket.max_concurrent is None
 
 
@@ -345,13 +345,13 @@ async def test_shutdown_without_starting_worker(bucket_config: BucketConfig) -> 
     """Shutdown should be a no-op if the worker was never started"""
     bucket = AsyncLeakyBucketExtra(bucket_config)
     # worker should not be started at construction time
-    assert bucket._worker_task is None  # pylint: disable=protected-access
+    assert bucket._worker_task is None
 
     # calling shutdown in an async context should not raise
     await bucket.shutdown()
 
     # still not started
-    assert bucket._worker_task is None  # pylint: disable=protected-access
+    assert bucket._worker_task is None
 
     # idempotent: calling shutdown again should still be fine
     await bucket.shutdown()
