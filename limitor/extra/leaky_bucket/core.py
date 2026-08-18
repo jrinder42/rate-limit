@@ -74,7 +74,7 @@ class AsyncLeakyBucket:
             try:
                 await self._timeout_acquire(amount, timeout)
                 future.set_result(True)  # note: this can be set to anything
-            except Exception as error:  # pylint: disable=broad-exception-caught
+            except Exception as error:
                 future.set_exception(error)
 
             self._queue.task_done()
