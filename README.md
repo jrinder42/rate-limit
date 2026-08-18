@@ -28,12 +28,34 @@ This project adheres to [Semantic Versioning](https://semver.org/)
 | Leaky Bucket                | Yes  |  Yes  |
 | Token Bucket                | Yes  |  Yes  |
 | Generic Cell Rate Algorithm | Yes  |  Yes  |
-| LLM-Token                   | Yes  |  Yes  |
+| LLM Token-based             | Yes  |  Yes  |
 
 > [!NOTE]  
 > Implementations will be single-threaded, blocking requests (or the equivalent) with burst capabilities. With asyncio, we use non-blocking cooperative multitasking, not preemptive multi-threading
 
 ## Development
+
+### Project Specific
+
+Install `uv` (mac / linux)
+
+```
+just install-uv
+```
+
+Install dependencies
+
+```
+just develop
+```
+
+Reset environment
+
+```
+just reset-env
+```
+
+### Project Agnostic
 
 Setup `uv`-based virtual environment
 
@@ -45,7 +67,7 @@ brew install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # python version are automatically downloaded as needed or: uv python install 3.12
-uv venv rate --python 3.12
+uv venv --python 3.12
 
 
 # to activate the virtual environment
@@ -53,27 +75,6 @@ source .venv/bin/activate
 
 # to deactivate the virtual environment
 deactivate
-```
-
-Create lock file + requirements.txt
-
-```shell
-# after pyproject.toml is created
-uv lock
-
-uv export -o requirements.txt --quiet
-```
-
-Upgrade dependencies
-
-```shell
-# can use sync or lock
-uv sync --upgrade
-
-or 
-
-# to upgrade a specific package
-uv lock --upgrade-package requests
 ```
 
 ## Usage
